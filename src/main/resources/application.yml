@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: cinema-zino-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/cinema_zino
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    host: localhost
+    port: 6379
+  jackson:
+    date-format: dd/MM/yyyy
+    time-zone: Asia/Ho_Chi_Minh
+
+server:
+  port: 8080
+
+jwt:
+  secret: "aVeryLongRandomSecretKeyOfAtLeast32Chars!"
+  expiration: 3600 # in seconds
+  header: Authorization
+  prefix: Bearer
