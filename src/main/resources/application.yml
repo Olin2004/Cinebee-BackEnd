@@ -1,9 +1,9 @@
 spring:
   application:
-    name: cinema-zino-backend
+    name: cinebee
 
   datasource:
-    url: jdbc:mysql://localhost:3306/cinema_zino
+    url: jdbc:mysql://localhost:3306/cinebee
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver

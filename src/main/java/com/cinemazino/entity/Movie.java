@@ -44,6 +44,18 @@ public class Movie {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(length = 255)
+    private String othernames;
+
+    @Column
+    private Double rating = 0.0;
+
+    @Column
+    private Integer votes = 0;
+
+    @Column
+    private Integer likes = 0;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -123,5 +135,37 @@ public class Movie {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getOthernames() {
+        return othernames;
+    }
+
+    public void setOthernames(String othernames) {
+        this.othernames = othernames;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
+    }
+
+    public Integer getVotes() {
+        return votes;
+    }
+
+    public void setVotes(Integer votes) {
+        this.votes = votes;
+    }
+
+    public Integer getLikes() {
+        return likes;
+    }
+
+    public void setLikes(Integer likes) {
+        this.likes = likes;
     }
 }
