@@ -31,4 +31,21 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
                 ORDER BY COUNT(t.id) DESC, m.likes DESC
             """)
     List<TrendingMovieResponse> findTopTrendingMovies(Pageable pageable);
+
+    @Query("""
+        SELECT new com.cinemazino.dto.response.TrendingMovieResponse(
+            m.id,
+            m.title,
+            m.othernames,
+            m.rating,
+            m.votes,
+            m.posterUrl,
+            m.likes,
+            m.views,
+            0 as rank
+        )
+        FROM Movie m
+        ORDER BY m.likes DESC
+    """)
+    List<TrendingMovieResponse> findAllMoviesOrderByLikesDesc(Pageable pageable);
 }

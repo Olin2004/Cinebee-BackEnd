@@ -56,6 +56,9 @@ public class Movie {
     @Column
     private Integer likes = 0;
 
+    @Column
+    private Integer views = 0;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -167,5 +170,13 @@ public class Movie {
 
     public void setLikes(Integer likes) {
         this.likes = likes;
+    }
+
+    public Integer getViews() {
+        return views;
+    }
+
+    public void setViews(Integer views) {
+        this.views = views;
     }
 }

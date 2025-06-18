@@ -27,6 +27,18 @@ public class TrendingMovieResponse {
         this.rank = rank;
     }
 
+    public TrendingMovieResponse(Long id, String title, String othernames, Double rating, Integer votes, String posterUrl, Integer likes, long ticketSales, int rank) {
+        this.id = id;
+        this.title = title;
+        this.othernames = othernames;
+        this.rating = rating;
+        this.votes = votes;
+        this.img = posterUrl;
+        this.likes = likes;
+        this.ticketSales = ticketSales;
+        this.rank = rank;
+    }
+
     public Long getId() {
         return id;
     }

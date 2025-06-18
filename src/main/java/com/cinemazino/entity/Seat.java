@@ -23,4 +23,20 @@ public class Seat {
     private Boolean isAvailable = true;
     private Double priceModifier;
     // ...getter, setter...
+
+    public Double getPriceModifier() {
+        return priceModifier;
+    }
+
+    public void setPriceModifier(Double priceModifier) {
+        this.priceModifier = priceModifier;
+    }
+
+    public Boolean getIsAvailable() {
+        return isAvailable;
+    }
+
+    public void setIsAvailable(Boolean isAvailable) {
+        this.isAvailable = isAvailable;
+    }
 }

@@ -27,8 +27,6 @@ public class RegisterController {
         result.put("message", "Register successful");
         // Chuẩn hóa dateOfBirth trả về dạng dd/MM/yyyy
         java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        java.time.format.DateTimeFormatter dateTimeFormatter = java.time.format.DateTimeFormatter
-                .ofPattern("HH:mm:ss dd/MM/yyyy");
         java.util.Map<String, Object> userMap = new java.util.HashMap<>();
         userMap.put("id", user.getId());
         userMap.put("username", user.getUsername());

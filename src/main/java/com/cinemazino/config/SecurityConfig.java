@@ -50,7 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/login", "/api/register").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/movies/trending", "/api/movies").permitAll() // Cho phép truy cập không
+                        .requestMatchers("/api/movies/trending", "/api/movies","/api/movies/all-by-likes-paged").permitAll() // Cho phép truy cập không
                                                                                             // cần auth
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
