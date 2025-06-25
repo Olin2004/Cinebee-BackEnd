@@ -1,5 +1,6 @@
 package com.cinebee.controller;
 
+import com.cinebee.dto.request.GoogleTokenRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -50,15 +51,3 @@ public class AuthController {
 
 }
 
-// DTO nhận Google ID token từ FE
-class GoogleTokenRequest {
-    private String idToken;
-
-    public String getIdToken() {
-        return idToken;
-    }
-
-    public void setIdToken(String idToken) {
-        this.idToken = idToken;
-    }
-}
