@@ -229,6 +229,7 @@ public class AuthService {
         response.setAccessToken(accessToken);
         response.setRefreshToken(refreshToken);
         response.setRole(user.getRole().name());
+        response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
         return response;
     }
 
@@ -304,6 +305,7 @@ public class AuthService {
             response.setAccessToken(accessToken);
             response.setRefreshToken(refreshToken);
             response.setRole(user.getRole().name());
+            response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
             return response;
         } catch (Exception e) {
             throw new RuntimeException("Google login failed: " + e.getMessage());

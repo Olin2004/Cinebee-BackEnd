@@ -1,4 +1,4 @@
-package com.cinebee.dto.request;
+package com.cinebee.util;
 
 import java.io.IOException;
 import java.time.LocalDate;

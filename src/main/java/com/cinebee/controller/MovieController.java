@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cinebee.dto.response.AllPagedMoviesResponse;
-import com.cinebee.dto.response.SimpleMovieResponse;
+import com.cinebee.dto.response.PageResponse;
+
 import com.cinebee.dto.response.TrendingMovieResponse;
 import com.cinebee.service.MovieService;
 
@@ -24,21 +24,18 @@ public class MovieController {
 
     @GetMapping("/trending")
     public ResponseEntity<List<TrendingMovieResponse>> getTrendingMovies() {
-        List<TrendingMovieResponse> movies = movieService.getTrendingMovies(10);
-        return ResponseEntity.ok(movies);
+        List<TrendingMovieResponse> trendingMovies = movieService.getTrendingMovies(10);
+        return ResponseEntity.ok(trendingMovies);
     }
 
     @GetMapping("/all-by-likes")
-    public ResponseEntity<AllPagedMoviesResponse<TrendingMovieResponse>> getAllMoviesByLikes(@RequestParam(defaultValue = "0") int page) {
-        int size = 20;
-        AllPagedMoviesResponse<TrendingMovieResponse> movies = movieService.getAllMoviesOrderByLikesPaged(page, size);
-        return ResponseEntity.ok(movies);
+    public ResponseEntity<PageResponse<TrendingMovieResponse>> getAllMoviesByLikes(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        int pageIndex = Math.max(page - 1, 0);
+        PageResponse<TrendingMovieResponse> pageResponse = movieService.getTrendingMoviesPageResponse(pageIndex, size);
+        return ResponseEntity.ok(pageResponse);
     }
 
-    @GetMapping("/all-by-likes-paged")
-    public ResponseEntity<AllPagedMoviesResponse<SimpleMovieResponse>> getAllMoviesByLikesPaged() {
-        int size = 20;
-        AllPagedMoviesResponse<SimpleMovieResponse> movies = movieService.getAllMoviesSimplePaged(size);
-        return ResponseEntity.ok(movies);
-    }
+
 }

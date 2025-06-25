@@ -15,13 +15,8 @@ public class LoginController {
     private AuthService authService;
 
     @PostMapping
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request) {
         TokenResponse response = authService.login(request);
-        java.util.Map<String, Object> result = new java.util.HashMap<>();
-        result.put("accessToken", response.getAccessToken());
-        result.put("refreshToken", response.getRefreshToken());
-        result.put("userStatus", response.getUserStatus());
-        result.put("role", response.getRole());
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(response);
     }
 }

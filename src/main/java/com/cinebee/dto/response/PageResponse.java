@@ -1,24 +1,23 @@
 package com.cinebee.dto.response;
 
 import java.util.List;
-
-public class AllPagedMoviesResponse<T> {
-    private List<List<T>> pages;
+public class PageResponse<T> {
+    private List<T> content;
     private int totalPages;
     private long totalElements;
 
-    public AllPagedMoviesResponse(List<List<T>> pages, int totalPages, long totalElements) {
-        this.pages = pages;
+    public PageResponse(List<T> content, int totalPages, long totalElements) {
+        this.content = content;
         this.totalPages = totalPages;
         this.totalElements = totalElements;
     }
 
-    public List<List<T>> getPages() {
-        return pages;
+    public List<T> getContent() {
+        return content;
     }
 
-    public void setPages(List<List<T>> pages) {
-        this.pages = pages;
+    public void setContent(List<T> content) {
+        this.content = content;
     }
 
     public int getTotalPages() {

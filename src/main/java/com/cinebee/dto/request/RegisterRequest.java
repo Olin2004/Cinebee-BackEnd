@@ -2,6 +2,7 @@ package com.cinebee.dto.request;
 
 import java.time.LocalDate;
 
+import com.cinebee.util.MultiFormatDateDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import jakarta.validation.constraints.Email;
@@ -31,7 +32,7 @@ public class RegisterRequest {
 
     @NotNull(message = "Date of birth is required")
     @Past(message = "Date of birth must be in the past")
-    @JsonDeserialize(using = com.cinebee.dto.request.MultiFormatDateDeserializer.class)
+    @JsonDeserialize(using = MultiFormatDateDeserializer.class)
     private LocalDate dateOfBirth;
 
     // Getters and setters

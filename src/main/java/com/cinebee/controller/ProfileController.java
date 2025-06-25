@@ -1,8 +1,5 @@
 package com.cinebee.controller;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -14,6 +11,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cinebee.entity.User;
 import com.cinebee.repository.UserRepository;
+import com.cinebee.dto.response.UserResponse;
+import com.cinebee.mapper.UserMapper;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -30,19 +29,7 @@ public class ProfileController {
         if (user == null) {
             return ResponseEntity.status(404).body("User not found");
         }
-        Map<String, Object> result = new HashMap<>();
-        result.put("id", user.getId());
-        result.put("username", user.getUsername());
-        result.put("email", user.getEmail());
-        result.put("fullName", user.getFullName());
-        result.put("phoneNumber", user.getPhoneNumber());
-        result.put("dateOfBirth", user.getDateOfBirth());
-        result.put("avatarUrl", user.getAvatarUrl());
-        result.put("role", user.getRole());
-        result.put("provider", user.getProvider());
-        result.put("createdAt", user.getCreatedAt());
-        result.put("updatedAt", user.getUpdatedAt());
-        result.put("userStatus", user.getUserStatus());
-        return ResponseEntity.ok(result);
+        UserResponse userResponse = UserMapper.toUserResponse(user);
+        return ResponseEntity.ok(userResponse);
     }
 }

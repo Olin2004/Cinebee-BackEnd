@@ -2,7 +2,7 @@ package com.cinebee.mapper;
 
 import com.cinebee.entity.Movie;
 import com.cinebee.dto.response.TrendingMovieResponse;
-import com.cinebee.dto.response.SimpleMovieResponse;
+
 
 /**
  * Utility class for mapping Movie entity to response DTOs.
@@ -33,14 +33,5 @@ public class MovieMapper {
      * @param movie the Movie entity
      * @return SimpleMovieResponse DTO
      */
-    public static SimpleMovieResponse mapToSimpleMovieResponse(Movie movie) {
-        if (movie == null) return null;
-        return new SimpleMovieResponse(
-            movie.getId(),
-            movie.getTitle(),
-            movie.getLikes(),
-            movie.getViews(),
-            movie.getPosterUrl() // img in DTO is actually posterUrl
-        );
-    }
+
 }

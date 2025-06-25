@@ -4,11 +4,12 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.cinebee.dto.response.AllPagedMoviesResponse;
+import com.cinebee.dto.response.PageResponse;
 import com.cinebee.dto.response.TrendingMovieResponse;
-import com.cinebee.dto.response.SimpleMovieResponse;
 import com.cinebee.entity.Movie;
 import com.cinebee.mapper.MovieMapper;
 import com.cinebee.repository.MovieRepository;
@@ -21,66 +22,71 @@ public class MovieService {
         this.movieRepository = movieRepository;
     }
 
+    /**
+     * Lấy danh sách phim trending theo lượt like giảm dần, giới hạn số lượng.
+     * @param limit Số lượng phim muốn lấy
+     * @return Danh sách phim trending đã set rank
+     */
+    @Transactional(readOnly = true)
     public List<TrendingMovieResponse> getTrendingMovies(int limit) {
-        List<TrendingMovieResponse> movies = movieRepository.findTopTrendingMovies(PageRequest.of(0, limit));
-        IntStream.range(0, movies.size()).forEach(i -> movies.get(i).setRank(i + 1));
-        return movies;
+        List<Movie> movies = movieRepository.findAllByOrderByLikesDesc(PageRequest.of(0, limit));
+        return mapAndRank(movies, 0);
     }
 
-    public List<TrendingMovieResponse> getAllMoviesOrderByLikes(int page, int size) {
-        List<TrendingMovieResponse> movies = movieRepository.findAllMoviesOrderByLikesDesc(PageRequest.of(page, size));
-        IntStream.range(0, movies.size()).forEach(i -> movies.get(i).setRank(i + 1 + page * size));
-        return movies;
+    /**
+     * Lấy danh sách phim trending (paging) theo lượt like và view giảm dần.
+     * @param page Trang hiện tại (bắt đầu từ 0)
+     * @param size Số lượng phim mỗi trang
+     * @return Danh sách phim trending đã set rank
+     */
+    @Transactional(readOnly = true)
+    public List<TrendingMovieResponse> getTrendingMoviesPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        var moviePage = movieRepository.findAllByOrderByLikesDescViewsDesc(pageable);
+        long offset = (long) page * size;
+        return mapAndRank(moviePage.getContent(), offset);
     }
 
-    public AllPagedMoviesResponse<TrendingMovieResponse> getAllMoviesOrderByLikesPaged(int page, int size) {
-        var pageable = PageRequest.of(page, size);
-        var moviePage = movieRepository.findAll(pageable);
-        List<Movie> movieEntities = moviePage.getContent();
-        List<TrendingMovieResponse> movies = movieEntities.stream()
-            .sorted((a, b) -> b.getLikes().compareTo(a.getLikes()))
-            .map(MovieMapper::mapToTrendingMovieResponse)
-            .toList();
-        return new AllPagedMoviesResponse<TrendingMovieResponse>(List.of(movies), moviePage.getTotalPages(), moviePage.getTotalElements());
+    /**
+     * Lấy 1 page phim trending (paging) theo lượt like và view giảm dần, trả về PageResponse.
+     * @param page Trang hiện tại (bắt đầu từ 0)
+     * @param size Số lượng phim mỗi trang
+     * @return PageResponse gồm content, tổng số trang, tổng số phần tử
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<TrendingMovieResponse> getTrendingMoviesPageResponse(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        var moviePage = movieRepository.findAllByOrderByLikesDescViewsDesc(pageable);
+        long offset = (long) page * size;
+        List<TrendingMovieResponse> movies = mapAndRank(moviePage.getContent(), offset);
+        return new PageResponse<>(movies, moviePage.getTotalPages(), moviePage.getTotalElements());
     }
 
-    public AllPagedMoviesResponse<TrendingMovieResponse> getAllMoviesPaged(int size) {
-        List<Movie> allMovies = movieRepository.findAll();
-        allMovies.sort((a, b) -> b.getLikes().compareTo(a.getLikes()));
-        int totalElements = allMovies.size();
-        int totalPages = (int) Math.ceil((double) totalElements / size);
-        List<List<TrendingMovieResponse>> pages = new java.util.ArrayList<>();
-        for (int i = 0; i < totalPages; i++) {
-            int from = i * size;
-            int to = Math.min(from + size, totalElements);
-            List<TrendingMovieResponse> page = new java.util.ArrayList<>();
-            for (int j = from; j < to; j++) {
-                Movie m = allMovies.get(j);
-                TrendingMovieResponse res = MovieMapper.mapToTrendingMovieResponse(m);
-                page.add(res);
-            }
-            pages.add(page);
-        }
-        return new AllPagedMoviesResponse<>(pages, totalPages, totalElements);
+    /**
+     * Tìm kiếm phim trending theo tiêu đề (có phân trang).
+     * @param title Từ khóa tiêu đề
+     * @param page Trang hiện tại (bắt đầu từ 0)
+     * @param size Số lượng phim mỗi trang
+     * @return Danh sách phim trending phù hợp
+     */
+    @Transactional(readOnly = true)
+    public List<TrendingMovieResponse> searchTrendingMoviesByTitle(String title, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        var moviePage = movieRepository.findByTitleContainingIgnoreCase(title, pageable);
+        return moviePage.getContent().stream().map(MovieMapper::mapToTrendingMovieResponse).toList();
     }
 
-    public AllPagedMoviesResponse<SimpleMovieResponse> getAllMoviesSimplePaged(int size) {
-        List<Movie> allMovies = movieRepository.findAll();
-        allMovies.sort((a, b) -> b.getLikes().compareTo(a.getLikes()));
-        int totalElements = allMovies.size();
-        int totalPages = (int) Math.ceil((double) totalElements / size);
-        List<List<SimpleMovieResponse>> pages = new java.util.ArrayList<>();
-        for (int i = 0; i < totalPages; i++) {
-            int from = i * size;
-            int to = Math.min(from + size, totalElements);
-            List<SimpleMovieResponse> page = new java.util.ArrayList<>();
-            for (int j = from; j < to; j++) {
-                Movie m = allMovies.get(j);
-                SimpleMovieResponse res = MovieMapper.mapToSimpleMovieResponse(m);
-                page.add(res);
-            }
-            pages.add(page);
-        }
-        return new AllPagedMoviesResponse<>(pages, totalPages, totalElements);
+    /**
+     * Map list Movie sang TrendingMovieResponse và set rank cho từng phim.
+     * @param movies Danh sách phim
+     * @param offset Offset thứ tự rank (dùng cho paging)
+     * @return Danh sách TrendingMovieResponse đã set rank
+     */
+    private List<TrendingMovieResponse> mapAndRank(List<Movie> movies, long offset) {
+        List<TrendingMovieResponse> list = movies.stream()
+                .map(MovieMapper::mapToTrendingMovieResponse)
+                .toList();
+        IntStream.range(0, list.size()).forEach(i -> list.get(i).setRank((int) (offset + i + 1)));
+        return list;
     }
 }
