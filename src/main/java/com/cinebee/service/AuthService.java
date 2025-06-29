@@ -96,9 +96,7 @@ public class AuthService {
     }
 
     /**
-     * Authenticate user by username, email, or phone number. Returns JWT tokens if
-     * successful.
-     *
+
      * @param request Login data
      * @return TokenResponse containing JWT tokens and user role
      */
@@ -136,13 +134,12 @@ public class AuthService {
         response.setAccessToken(accessToken);
         response.setRefreshToken(refreshToken);
         response.setRole(user.getRole().name());
+        response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
         return response;
     }
 
     /**
-     * Issue new access and refresh tokens if the provided refresh token is valid.
-     *
-     * @param refreshToken The refresh token
+
      * @return TokenResponse with new tokens and user role
      */
     public TokenResponse refreshToken(String refreshToken) {
@@ -163,11 +160,7 @@ public class AuthService {
         return response;
     }
 
-    /**
-     * Blacklist the provided access token until it expires.
-     *
-     * @param accessToken The JWT access token to blacklist
-     */
+
     public void logout(String accessToken) {
         long now = System.currentTimeMillis();
         long exp = 0;
@@ -182,12 +175,7 @@ public class AuthService {
         }
     }
 
-    /**
-     * Login or register a user using Google information.
-     *
-     * @param googleUser The JSON node containing Google user information
-     * @return TokenResponse containing JWT tokens and user role
-     */
+
     public TokenResponse loginWithGoogle(JsonNode googleUser) {
         String email = googleUser.get("email").asText();
         String sub = googleUser.get("sub").asText(); // Google user ID
@@ -233,12 +221,6 @@ public class AuthService {
         return response;
     }
 
-    /**
-     * Login or register a user using Google ID token.
-     *
-     * @param idToken The Google ID token
-     * @return TokenResponse containing JWT tokens and user role
-     */
     public TokenResponse loginWithGoogleIdToken(String idToken) {
         try {
             // 1. Parse token

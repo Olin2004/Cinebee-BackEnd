@@ -2,6 +2,8 @@ package com.cinebee.controller;
 
 import java.util.List;
 
+import com.cinebee.dto.request.MovieRequest;
+import com.cinebee.dto.response.MovieResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -9,11 +11,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestPart;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.cinebee.dto.response.PageResponse;
-
-import com.cinebee.dto.response.TrendingMovieResponse;
 import com.cinebee.service.MovieService;
+
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -23,19 +28,53 @@ public class MovieController {
     private MovieService movieService;
 
     @GetMapping("/trending")
-    public ResponseEntity<List<TrendingMovieResponse>> getTrendingMovies() {
-        List<TrendingMovieResponse> trendingMovies = movieService.getTrendingMovies(10);
+    public ResponseEntity<List<MovieResponse>> getTrendingMovies() {
+        List<MovieResponse> trendingMovies = movieService.getTrendingMovies(10);
         return ResponseEntity.ok(trendingMovies);
     }
 
     @GetMapping("/all-by-likes")
-    public ResponseEntity<PageResponse<TrendingMovieResponse>> getAllMoviesByLikes(
+    public ResponseEntity<PageResponse<MovieResponse>> getAllMoviesByLikes(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         int pageIndex = Math.max(page - 1, 0);
-        PageResponse<TrendingMovieResponse> pageResponse = movieService.getTrendingMoviesPageResponse(pageIndex, size);
+        PageResponse<MovieResponse> pageResponse = movieService.getTrendingMoviesPageResponse(pageIndex, size);
         return ResponseEntity.ok(pageResponse);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<MovieResponse>> searchSuggestMovies(@RequestParam String title) {
 
+        List<MovieResponse> movies = movieService.searchTrendingMoviesByTitle(title, 0, 20);
+        return ResponseEntity.ok(movies);
+    }
+
+
+    @PostMapping("/add-new-film")
+    public ResponseEntity<?> addMovie(
+            @RequestPart("info") String info,
+            @RequestPart(value = "posterImageFile", required = false) MultipartFile posterImageFile) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        MovieRequest req = mapper.readValue(info, MovieRequest.class);
+        MovieResponse saved = movieService.addMovie(req, posterImageFile);
+        return ResponseEntity.ok(saved);
+    }
+
+    @PostMapping("/update-film")
+    public ResponseEntity<?> updateMovie(
+            @RequestParam("id") Long id,
+            @RequestPart("info") String info,
+            @RequestPart(value = "posterImageFile", required = false) MultipartFile posterImageFile
+    ) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        MovieRequest req = mapper.readValue(info, MovieRequest.class);
+        MovieResponse updated = movieService.updateMovie(id, req, posterImageFile);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/delete")
+    public ResponseEntity<?> deleteMovie(@RequestParam Long id) {
+        movieService.deleteMovie(id);
+        return ResponseEntity.ok().build();
+    }
 }

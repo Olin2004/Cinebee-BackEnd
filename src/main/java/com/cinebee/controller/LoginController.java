@@ -17,6 +17,7 @@ public class LoginController {
     @PostMapping
     public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request) {
         TokenResponse response = authService.login(request);
+        // Assuming user status is already set in TokenResponse by AuthService
         return ResponseEntity.ok(response);
     }
 }

@@ -1,7 +1,8 @@
 package com.cinebee.mapper;
 
+import com.cinebee.dto.request.MovieRequest;
+import com.cinebee.dto.response.MovieResponse;
 import com.cinebee.entity.Movie;
-import com.cinebee.dto.response.TrendingMovieResponse;
 
 
 /**
@@ -9,29 +10,51 @@ import com.cinebee.dto.response.TrendingMovieResponse;
  */
 public class MovieMapper {
     /**
-     * Maps a Movie entity to a TrendingMovieResponse DTO.
+     * Maps a Movie entity to a MovieResponse DTO.
      * @param movie the Movie entity
-     * @return TrendingMovieResponse DTO
+     * @return MovieResponse DTO
      */
-    public static TrendingMovieResponse mapToTrendingMovieResponse(Movie movie) {
+    public static MovieResponse mapToTrendingMovieResponse(Movie movie) {
         if (movie == null) return null;
-        return new TrendingMovieResponse(
-            movie.getId(),
-            movie.getTitle(),
-            movie.getOthernames(),
-            movie.getRating(),
-            movie.getVotes(),
-            movie.getPosterUrl(), // img in DTO is actually posterUrl
-            movie.getLikes(),
-            movie.getViews() != null ? movie.getViews().longValue() : 0L, // ticketSales
-            0 // rank, should be set elsewhere if needed
+        return new MovieResponse(
+                movie.getId(),
+                movie.getTitle(),
+                movie.getOthernames(),
+                movie.getRating(),
+                movie.getVotes(),
+                movie.getPosterUrl(), // img in DTO is actually posterUrl
+                movie.getLikes(),
+                // Bỏ ticketSales
+                0,
+                movie.getViews() // truyền views vào DTO
         );
     }
+    public static  MovieResponse mapToHightRate(Movie movie){
+        if (movie == null) return null;
+        return new MovieResponse(
+                movie.getId(),
+                movie.getTitle(),
+                movie.getOthernames(),
+                null, // rating
+                null, // votes
+                movie.getPosterUrl(), // img in DTO is actually posterUrl
+                movie.getLikes(),
+                // Bỏ ticketSales
+                0,
+                movie.getViews() // truyền views vào DTO
+        );
+    };
 
-    /**
-     * Maps a Movie entity to a SimpleMovieResponse DTO.
-     * @param movie the Movie entity
-     * @return SimpleMovieResponse DTO
-     */
 
+    public static Movie mapAddMovieRequestToEntity(MovieRequest req) {
+        if (req == null) return null;
+        Movie movie = new Movie();
+        movie.setTitle(req.getTitle());
+        movie.setOthernames(req.getOthernames());
+        movie.setBasePrice(req.getBasePrice());
+        movie.setDuration(req.getDuration());
+        movie.setGenre(req.getGenre());
+        movie.setPosterUrl(req.getPosterUrl());
+        return movie;
+    }
 }

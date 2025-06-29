@@ -1,0 +1,24 @@
+package com.cinebee.dto.response;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+@Getter
+@Setter
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class MovieResponse {
+
+    private Long id;
+    private String title;
+    private String othernames;
+    private Double rating;
+    private Integer votes;
+    private String img;
+    private Integer likes;
+    private Integer rank;
+    private Integer views;
+
+}
