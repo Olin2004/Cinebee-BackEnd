@@ -45,23 +45,43 @@ Cinebee-BackEnd/
 └── ...
 ```
 
-## Environment Setup
+## Environment Variables (.env)
 
--    Java 21, Maven, MySQL, Docker (for Redis)
--    Create `.env` at project root for secrets (Cloudinary, DB, mail...)
+Create a `.env` file in the project root with the following structure (do NOT add sample values here):
 
-## Running Locally
+```
+DB_USERNAME=
+DB_PASSWORD=
+REDIS_PASSWORD=
+MAIL_USERNAME=
+MAIL_PASSWORD=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+JWT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
 
-1. Start Redis:
-     ```sh
-     docker-compose up -d
-     ```
-2. Configure DB, Cloudinary, mail in `.env` and `application.yml`.
-3. Build & run:
-     ```sh
-     mvn clean install
-     mvn spring-boot:run
-     ```
+> **Note:** Do not commit your `.env` file to git for security reasons.
+
+## How to Run the Project
+
+1.  **Install:** Java 21, Maven, MySQL, Docker (for Redis)
+2.  **Create DB:** Create a MySQL database named `cinebee` (or the name you set in `application.yml`)
+3.  **Create `.env`** and fill in the environment variables as above
+4.  **Start Redis:**
+    ```sh
+    docker-compose up -d
+    ```
+5.  **Build & run:**
+    ```sh
+    mvn clean install
+    mvn spring-boot:run
+    ```
+6.  **Access API:**
+    -    Default: `http://localhost:8080`
+    -    See API usage below
 
 ## API Usage
 
@@ -77,15 +97,7 @@ Cinebee-BackEnd/
      -    Body: `form-data`
           -    `info` (Text): JSON string, e.g.
                ```json
-               {
-               	"title": "Komang",
-               	"othernames": "Moa",
-               	"basePrice": 100000,
-               	"duration": 120,
-               	"genre": "Action",
-               	"description": "Phim hành động",
-               	"posterUrl": "https://..."
-               }
+               {"title":"Komang","othernames":"Moa","basePrice":100000,"duration":120,"genre":"Action","description":"Phim hành động","posterUrl":"https://..."}
                ```
           -    `posterImageFile` (File): (optional) image file
 -    **Update movie (admin only):**
