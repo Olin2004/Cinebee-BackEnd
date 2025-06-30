@@ -17,6 +17,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleApiException(ApiException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("status", ex.getErrorCode().getCode());
+        body.put("statusCode", ex.getErrorCode().getStatusCode().value());
         body.put("message", ex.getErrorCode().getMessage());
         body.put("errorCode", ex.getErrorCode().getErrorCode());
         return new ResponseEntity<>(body, ex.getErrorCode().getStatusCode());

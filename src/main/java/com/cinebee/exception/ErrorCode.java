@@ -48,7 +48,8 @@ public enum ErrorCode {
 
     // Other possible errors
     SERVICE_UNAVAILABLE(6001, "Service is temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE),
-    TOO_MANY_REQUESTS(6002, "Too many requests - try again later", HttpStatus.TOO_MANY_REQUESTS);
+    TOO_MANY_REQUESTS(6002, "Too many requests - try again later", HttpStatus.TOO_MANY_REQUESTS),
+    REFRESH_TOKEN_LIMIT_EXCEEDED(6003, "Refresh token has exceeded the allowed number of uses. Please login again.", HttpStatus.UNAUTHORIZED);
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

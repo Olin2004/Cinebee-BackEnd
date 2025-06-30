@@ -24,8 +24,11 @@ import com.cinebee.dto.request.LoginRequest;
 import com.cinebee.dto.request.RegisterRequest;
 import com.cinebee.dto.response.TokenResponse;
 import com.cinebee.entity.User;
+import com.cinebee.exception.ApiException;
+import com.cinebee.exception.ErrorCode;
 import com.cinebee.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jwk.JWK;
@@ -51,6 +54,10 @@ public class AuthService {
     private StringRedisTemplate redisTemplate;
     @Autowired
     private EmailService emailService;
+
+    private static final int MAX_REFRESH_COUNT = 5;
+    private static final String REFRESH_TOKEN_PREFIX = "refresh:";
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Register a new user with unique email and phone number. Username is
@@ -128,8 +135,7 @@ public class AuthService {
         User user = userOpt.get();
         String accessToken = jwtConfig.generateToken(user);
         String refreshToken = jwtConfig.generateRefreshToken(user);
-        redisTemplate.opsForValue().set(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs(),
-                TimeUnit.MILLISECONDS);
+        saveRefreshToken(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs());
         TokenResponse response = new TokenResponse();
         response.setAccessToken(accessToken);
         response.setRefreshToken(refreshToken);
@@ -143,21 +149,36 @@ public class AuthService {
      * @return TokenResponse with new tokens and user role
      */
     public TokenResponse refreshToken(String refreshToken) {
-        String username = redisTemplate.opsForValue().get(refreshToken);
-        if (username == null) {
-            throw new RuntimeException("Invalid refresh token");
+        String redisKey = REFRESH_TOKEN_PREFIX + refreshToken;
+        String value = redisTemplate.opsForValue().get(redisKey);
+        if (value == null) {
+            throw new ApiException(ErrorCode.TOKEN_INVALID);
         }
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
-        String newAccessToken = jwtConfig.generateToken(user);
-        String newRefreshToken = jwtConfig.generateRefreshToken(user);
-        redisTemplate.delete(refreshToken);
-        redisTemplate.opsForValue().set(newRefreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs(),
-                TimeUnit.MILLISECONDS);
-        TokenResponse response = new TokenResponse();
-        response.setAccessToken(newAccessToken);
-        response.setRefreshToken(newRefreshToken);
-        response.setRole(user.getRole().name());
-        return response;
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = objectMapper.readValue(value, Map.class);
+            String username = (String) data.get("username");
+            int refreshCount = (int) (data.get("refresh_count") instanceof Integer ? data.get("refresh_count") : ((Number)data.get("refresh_count")).intValue());
+            if (refreshCount >= MAX_REFRESH_COUNT) {
+                redisTemplate.delete(redisKey);
+                throw new ApiException(ErrorCode.REFRESH_TOKEN_LIMIT_EXCEEDED);
+            }
+            User user = userRepository.findByUsername(username).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_EXISTED));
+            String newAccessToken = jwtConfig.generateToken(user);
+            String newRefreshToken = jwtConfig.generateRefreshToken(user);
+            // Xóa token cũ, lưu token mới với refresh_count + 1
+            redisTemplate.delete(redisKey);
+            saveRefreshTokenWithCount(newRefreshToken, user.getUsername(), refreshCount + 1, jwtConfig.getRefreshExpirationMs());
+            TokenResponse response = new TokenResponse();
+            response.setAccessToken(newAccessToken);
+            response.setRefreshToken(newRefreshToken);
+            response.setRole(user.getRole().name());
+            return response;
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.INTERNAL_ERROR);
+        }
     }
 
 
@@ -281,8 +302,7 @@ public class AuthService {
             }
             String accessToken = jwtConfig.generateToken(user);
             String refreshToken = jwtConfig.generateRefreshToken(user);
-            redisTemplate.opsForValue().set(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs(),
-                    TimeUnit.MILLISECONDS);
+            saveRefreshToken(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs());
             TokenResponse response = new TokenResponse();
             response.setAccessToken(accessToken);
             response.setRefreshToken(refreshToken);
@@ -346,5 +366,31 @@ public class AuthService {
             return false;
         String real = redisTemplate.opsForValue().get("captcha:" + captchaKey);
         return real != null && real.equalsIgnoreCase(captcha);
+    }
+
+    // Khi sinh refresh token, lưu refresh_count = 0
+    private void saveRefreshToken(String refreshToken, String username, long ttlMillis) {
+        try {
+            String value = objectMapper.writeValueAsString(Map.of(
+                    "username", username,
+                    "refresh_count", 0
+            ));
+            redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, value, ttlMillis, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save refresh token", e);
+        }
+    }
+
+    // Khi update refresh token, tăng refresh_count
+    private void saveRefreshTokenWithCount(String refreshToken, String username, int refreshCount, long ttlMillis) {
+        try {
+            String value = objectMapper.writeValueAsString(Map.of(
+                    "username", username,
+                    "refresh_count", refreshCount
+            ));
+            redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, value, ttlMillis, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save refresh token", e);
+        }
     }
 }

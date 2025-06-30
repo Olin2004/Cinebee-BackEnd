@@ -47,20 +47,34 @@ Cinebee-BackEnd/
 
 ## Environment Variables (.env)
 
-Create a `.env` file in the project root with the following structure (do NOT add sample values here):
+Create a `.env` file in the project root with the following structure (do NOT add sample values):
 
 ```
+# Database
 DB_USERNAME=
 DB_PASSWORD=
+
+# Redis
 REDIS_PASSWORD=
+
+# Mail
 MAIL_USERNAME=
 MAIL_PASSWORD=
+
+# JWT
+JWT_SECRET=
+
+# Recaptcha
+RECAPTCHA_SECRET=
+
+# Google OAuth
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Cloudinary
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
-JWT_SECRET=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
 ```
 
 > **Note:** Do not commit your `.env` file to git for security reasons.
