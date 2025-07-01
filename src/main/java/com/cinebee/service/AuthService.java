@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -70,14 +71,14 @@ public class AuthService {
      */
     public User register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new ApiException(ErrorCode.USER_EXISTED);
         }
         if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
-            throw new RuntimeException("Phone number already exists");
+            throw new ApiException(ErrorCode.USER_EXISTED);
         }
         if (request.getDateOfBirth() != null
                 && request.getDateOfBirth().plusYears(13).isAfter(java.time.LocalDate.now())) {
-            throw new RuntimeException("Your age must be at least 13");
+            throw new ApiException(ErrorCode.INVALID_DOB);
         }
         String baseUsername = removeVietnameseTones(request.getFullName().trim().split("\\s+")[0].toLowerCase());
         String username;
@@ -95,10 +96,7 @@ public class AuthService {
         user.setRole(Role.USER);
         user.setCreatedAt(java.time.LocalDateTime.now());
         User savedUser = userRepository.save(user);
-
-        // Gửi email chào mừng
         emailService.sendRegistrationSuccess(savedUser.getEmail(), savedUser.getFullName());
-
         return savedUser;
     }
 
@@ -108,31 +106,8 @@ public class AuthService {
      * @return TokenResponse containing JWT tokens and user role
      */
     public TokenResponse login(LoginRequest request) {
-        if (!verifyTextCaptcha(request.getCaptchaKey(), request.getCaptcha())) {
-            throw new RuntimeException("Captcha is incorrect or has expired");
-        }
-
-        Optional<User> userOpt = Optional.empty();
-        String input = request.getUsername();
-        if (input != null) {
-            userOpt = userRepository.findByUsername(input);
-            if (userOpt.isPresent() && userOpt.get().getRole() == Role.ADMIN) {
-                if (!passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
-                    throw new RuntimeException("Invalid username or password");
-                }
-            } else {
-                userOpt = userRepository.findByEmail(input);
-                if (userOpt.isEmpty()) {
-                    userOpt = userRepository.findAll().stream()
-                            .filter(u -> input.equals(u.getPhoneNumber()))
-                            .findFirst();
-                }
-                if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
-                    throw new RuntimeException("Invalid email/phone or password");
-                }
-            }
-        }
-        User user = userOpt.get();
+        validateLoginRequest(request);
+        User user = getUserForLogin(request);
         String accessToken = jwtConfig.generateToken(user);
         String refreshToken = jwtConfig.generateRefreshToken(user);
         saveRefreshToken(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs());
@@ -142,6 +117,52 @@ public class AuthService {
         response.setRole(user.getRole().name());
         response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
         return response;
+    }
+
+    private void validateLoginRequest(LoginRequest request) {
+        String input = request.getUsername();
+        String password = request.getPassword();
+        if (input == null || input.trim().isEmpty() || input.length() < 3) {
+            throw new ApiException(ErrorCode.USERNAME_OR_PHONE_INVALID);
+        }
+        if (password == null || password.trim().isEmpty() || password.length() < 6) {
+            throw new ApiException(ErrorCode.PASSWORD_INVALID);
+        }
+        boolean isEmail = input.contains("@");
+        boolean isPhone = input.matches("^0[0-9]{9}$"); // Vietnamese phone number: 10 digits, starts with 0
+        if (isEmail && !Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$").matcher(input).matches()) {
+            throw new ApiException(ErrorCode.EMAIL_INVALID);
+        }
+        if (isPhone && !Pattern.compile("^0[0-9]{9}$").matcher(input).matches()) {
+            throw new ApiException(ErrorCode.PHONE_INVALID_FORMAT);
+        }
+        // If captchaKey and captcha are present, verify captcha
+        if (request.getCaptchaKey() != null && request.getCaptcha() != null) {
+            if (!verifyTextCaptcha(request.getCaptchaKey(), request.getCaptcha())) {
+                throw new ApiException(ErrorCode.CAPTCHA_INVALID);
+            }
+        }
+    }
+
+    private User getUserForLogin(LoginRequest request) {
+        String input = request.getUsername();
+        Optional<User> userOpt = userRepository.findByUsername(input);
+        if (userOpt.isPresent() && userOpt.get().getRole() == Role.ADMIN) {
+            if (!passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
+                throw new ApiException(ErrorCode.UNAUTHORIZED);
+            }
+            return userOpt.get();
+        }
+        userOpt = userRepository.findByEmail(input);
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findAll().stream()
+                    .filter(u -> input.equals(u.getPhoneNumber()))
+                    .findFirst();
+        }
+        if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+        return userOpt.get();
     }
 
     /**
@@ -270,7 +291,7 @@ public class AuthService {
                 }
             }
             if (!valid)
-                throw new RuntimeException("Invalid Google ID token signature");
+                throw new ApiException(ErrorCode.UNAUTHORIZED);
 
             // 3. Lưu user như loginWithGoogle(JsonNode)
             Optional<User> userOpt = userRepository.findByEmail(email);
@@ -310,7 +331,7 @@ public class AuthService {
             response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
             return response;
         } catch (Exception e) {
-            throw new RuntimeException("Google login failed: " + e.getMessage());
+            throw new ApiException(ErrorCode.INTERNAL_ERROR);
         }
     }
 
@@ -377,7 +398,7 @@ public class AuthService {
             ));
             redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, value, ttlMillis, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save refresh token", e);
+            throw new ApiException(ErrorCode.INTERNAL_ERROR);
         }
     }
 
@@ -390,7 +411,7 @@ public class AuthService {
             ));
             redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, value, ttlMillis, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to save refresh token", e);
+            throw new ApiException(ErrorCode.INTERNAL_ERROR);
         }
     }
 }

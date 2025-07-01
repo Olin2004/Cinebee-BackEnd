@@ -15,12 +15,8 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
 
     Page<Movie> findByTitleContainingIgnoreCase(String title, Pageable pageable);
 
-
-    List<Movie> findAllByOrderByLikesDesc(Pageable pageable);
-
     Page<Movie> findAllByOrderByLikesDescViewsDesc(Pageable pageable);
 
-    @Query("SELECT m FROM Movie m ORDER BY (m.rating + m.likes + m.views + m.views) DESC")
-    List<Movie> findTrendingMovies(Pageable pageable);
+    Page<Movie> findAllByOrderByRatingDescLikesDescViewsDesc(Pageable pageable);
 
 }

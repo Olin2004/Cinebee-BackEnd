@@ -5,6 +5,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import com.cinebee.exception.ApiException;
+import com.cinebee.exception.ErrorCode;
+
 import jakarta.mail.internet.MimeMessage;
 
 @Service
@@ -33,7 +36,7 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
         } catch (Exception e) {
-            // Handle exception (log or ignore)
+            throw new ApiException(ErrorCode.EMAIL_SEND_FAILED);
         }
     }
 }
