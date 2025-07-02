@@ -1,12 +1,8 @@
 package com.cinebee.service;
 
-import java.net.URL;
-import java.security.interfaces.RSAPublicKey;
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -28,15 +24,8 @@ import com.cinebee.entity.User;
 import com.cinebee.exception.ApiException;
 import com.cinebee.exception.ErrorCode;
 import com.cinebee.repository.UserRepository;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jwk.JWK;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
+import com.cinebee.util.UsernameGenerator;
 
 @Service
 public class AuthService {
@@ -55,6 +44,10 @@ public class AuthService {
     private StringRedisTemplate redisTemplate;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private UsernameGenerator usernameGenerator;
+    @Autowired
+    private GoogleOAuth2Service googleOAuth2Service;
 
     private static final int MAX_REFRESH_COUNT = 5;
     private static final String REFRESH_TOKEN_PREFIX = "refresh:";
@@ -80,12 +73,7 @@ public class AuthService {
                 && request.getDateOfBirth().plusYears(13).isAfter(java.time.LocalDate.now())) {
             throw new ApiException(ErrorCode.INVALID_DOB);
         }
-        String baseUsername = removeVietnameseTones(request.getFullName().trim().split("\\s+")[0].toLowerCase());
-        String username;
-        do {
-            int randomNum = (int) (Math.random() * 1_000_000_000);
-            username = baseUsername + randomNum;
-        } while (userRepository.findByUsername(username).isPresent());
+        String username = usernameGenerator.generateBaseUsername(request.getFullName());
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -108,15 +96,7 @@ public class AuthService {
     public TokenResponse login(LoginRequest request) {
         validateLoginRequest(request);
         User user = getUserForLogin(request);
-        String accessToken = jwtConfig.generateToken(user);
-        String refreshToken = jwtConfig.generateRefreshToken(user);
-        saveRefreshToken(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs());
-        TokenResponse response = new TokenResponse();
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setRole(user.getRole().name());
-        response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
-        return response;
+        return createTokenResponse(user, 0);
     }
 
     private void validateLoginRequest(LoginRequest request) {
@@ -155,9 +135,7 @@ public class AuthService {
         }
         userOpt = userRepository.findByEmail(input);
         if (userOpt.isEmpty()) {
-            userOpt = userRepository.findAll().stream()
-                    .filter(u -> input.equals(u.getPhoneNumber()))
-                    .findFirst();
+            userOpt = userRepository.findByPhoneNumber(input);
         }
         if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
             throw new ApiException(ErrorCode.UNAUTHORIZED);
@@ -185,16 +163,8 @@ public class AuthService {
                 throw new ApiException(ErrorCode.REFRESH_TOKEN_LIMIT_EXCEEDED);
             }
             User user = userRepository.findByUsername(username).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_EXISTED));
-            String newAccessToken = jwtConfig.generateToken(user);
-            String newRefreshToken = jwtConfig.generateRefreshToken(user);
-            // Xóa token cũ, lưu token mới với refresh_count + 1
             redisTemplate.delete(redisKey);
-            saveRefreshTokenWithCount(newRefreshToken, user.getUsername(), refreshCount + 1, jwtConfig.getRefreshExpirationMs());
-            TokenResponse response = new TokenResponse();
-            response.setAccessToken(newAccessToken);
-            response.setRefreshToken(newRefreshToken);
-            response.setRole(user.getRole().name());
-            return response;
+            return createTokenResponse(user, refreshCount + 1);
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {
@@ -202,6 +172,17 @@ public class AuthService {
         }
     }
 
+    private TokenResponse createTokenResponse(User user, int refreshCount) {
+        String accessToken = jwtConfig.generateToken(user);
+        String refreshToken = jwtConfig.generateRefreshToken(user);
+        saveRefreshTokenWithCount(refreshToken, user.getUsername(), refreshCount, jwtConfig.getRefreshExpirationMs());
+        TokenResponse response = new TokenResponse();
+        response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshToken);
+        response.setRole(user.getRole().name());
+        response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
+        return response;
+    }
 
     public void logout(String accessToken) {
         long now = System.currentTimeMillis();
@@ -218,158 +199,6 @@ public class AuthService {
     }
 
 
-    public TokenResponse loginWithGoogle(JsonNode googleUser) {
-        String email = googleUser.get("email").asText();
-        String sub = googleUser.get("sub").asText(); // Google user ID
-        String name = googleUser.has("name") ? googleUser.get("name").asText() : null;
-        String picture = googleUser.has("picture") ? googleUser.get("picture").asText() : null;
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        User user;
-        if (userOpt.isPresent()) {
-            user = userOpt.get();
-            // Nếu user đã tồn tại nhưng chưa có oauthId hoặc provider, cập nhật
-            if (user.getOauthId() == null)
-                user.setOauthId(sub);
-            if (user.getProvider() != User.Provider.GOOGLE)
-                user.setProvider(User.Provider.GOOGLE);
-            if (name != null && (user.getFullName() == null || user.getFullName().isEmpty()))
-                user.setFullName(name);
-            if (picture != null && (user.getAvatarUrl() == null || user.getAvatarUrl().isEmpty()))
-                user.setAvatarUrl(picture);
-            user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
-        } else {
-            user = new User();
-            user.setUsername(generateGoogleUsername(email));
-            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // random password
-            user.setEmail(email);
-            user.setFullName(name);
-            user.setAvatarUrl(picture);
-            user.setProvider(User.Provider.GOOGLE);
-            user.setOauthId(sub);
-            user.setRole(Role.USER);
-            user.setCreatedAt(LocalDateTime.now());
-            userRepository.save(user);
-        }
-        String accessToken = jwtConfig.generateToken(user);
-        String refreshToken = jwtConfig.generateRefreshToken(user);
-        redisTemplate.opsForValue().set(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs(),
-                TimeUnit.MILLISECONDS);
-        TokenResponse response = new TokenResponse();
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setRole(user.getRole().name());
-        response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
-        return response;
-    }
-
-    public TokenResponse loginWithGoogleIdToken(String idToken) {
-        try {
-            // 1. Parse token
-            SignedJWT signedJWT = SignedJWT.parse(idToken);
-            JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
-            String email = claims.getStringClaim("email");
-            String sub = claims.getSubject();
-            String name = claims.getStringClaim("name");
-            String picture = claims.getStringClaim("picture");
-
-            // 2. Validate signature (optional, Google SDK đã validate ở FE, nhưng có thể
-            // check thêm)
-            // Lấy public key từ Google (caching production)
-            URL jwksUrl = new URL("https://www.googleapis.com/oauth2/v3/certs");
-            JWKSet publicKeys = JWKSet.load(jwksUrl);
-            List<JWK> keys = publicKeys.getKeys();
-            boolean valid = false;
-            for (JWK key : keys) {
-                if (key instanceof RSAKey) {
-                    RSAPublicKey rsaPublicKey = ((RSAKey) key).toRSAPublicKey();
-                    JWSVerifier verifier = new RSASSAVerifier(rsaPublicKey);
-                    if (signedJWT.verify(verifier)) {
-                        valid = true;
-                        break;
-                    }
-                }
-            }
-            if (!valid)
-                throw new ApiException(ErrorCode.UNAUTHORIZED);
-
-            // 3. Lưu user như loginWithGoogle(JsonNode)
-            Optional<User> userOpt = userRepository.findByEmail(email);
-            User user;
-            if (userOpt.isPresent()) {
-                user = userOpt.get();
-                if (user.getOauthId() == null)
-                    user.setOauthId(sub);
-                if (user.getProvider() != User.Provider.GOOGLE)
-                    user.setProvider(User.Provider.GOOGLE);
-                if (name != null && (user.getFullName() == null || user.getFullName().isEmpty()))
-                    user.setFullName(name);
-                if (picture != null && (user.getAvatarUrl() == null || user.getAvatarUrl().isEmpty()))
-                    user.setAvatarUrl(picture);
-                user.setUpdatedAt(LocalDateTime.now());
-                userRepository.save(user);
-            } else {
-                user = new User();
-                user.setUsername(generateGoogleUsername(email));
-                user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-                user.setEmail(email);
-                user.setFullName(name);
-                user.setAvatarUrl(picture);
-                user.setProvider(User.Provider.GOOGLE);
-                user.setOauthId(sub);
-                user.setRole(Role.USER);
-                user.setCreatedAt(LocalDateTime.now());
-                userRepository.save(user);
-            }
-            String accessToken = jwtConfig.generateToken(user);
-            String refreshToken = jwtConfig.generateRefreshToken(user);
-            saveRefreshToken(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs());
-            TokenResponse response = new TokenResponse();
-            response.setAccessToken(accessToken);
-            response.setRefreshToken(refreshToken);
-            response.setRole(user.getRole().name());
-            response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
-            return response;
-        } catch (Exception e) {
-            throw new ApiException(ErrorCode.INTERNAL_ERROR);
-        }
-    }
-
-    private String generateGoogleUsername(String email) {
-        String base = email.split("@")[0];
-        String username = base;
-        int i = 1;
-        while (userRepository.findByUsername(username).isPresent()) {
-            username = base + i;
-            i++;
-        }
-        return username;
-    }
-
-    /**
-     * Remove Vietnamese diacritics from a string for username generation.
-     *
-     * @param str Input string
-     * @return String without Vietnamese tones
-     */
-    private String removeVietnameseTones(String str) {
-        str = str.replaceAll("[àáạảãâầấậẩẫăằắặẳẵ]", "a");
-        str = str.replaceAll("[èéẹẻẽêềếệểễ]", "e");
-        str = str.replaceAll("[ìíịỉĩ]", "i");
-        str = str.replaceAll("[òóọỏõôồốộổỗơờớợởỡ]", "o");
-        str = str.replaceAll("[ùúụủũưừứựửữ]", "u");
-        str = str.replaceAll("[ỳýỵỷỹ]", "y");
-        str = str.replaceAll("đ", "d");
-        str = str.replaceAll("[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]", "A");
-        str = str.replaceAll("[ÈÉẸẺẼÊỀẾỆỂỄ]", "E");
-        str = str.replaceAll("[ÌÍỊỈĨ]", "I");
-        str = str.replaceAll("[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]", "O");
-        str = str.replaceAll("[ÙÚỤỦŨƯỪỨỰỬỮ]", "U");
-        str = str.replaceAll("[ỲÝỴỶỸ]", "Y");
-        str = str.replaceAll("Đ", "D");
-        str = str.replaceAll("[^a-zA-Z0-9]", "");
-        return str;
-    }
 
     public boolean verifyRecaptcha(String recaptchaToken) {
         String url = "https://www.google.com/recaptcha/api/siteverify";
@@ -396,7 +225,8 @@ public class AuthService {
                     "username", username,
                     "refresh_count", 0
             ));
-            redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, value, ttlMillis, TimeUnit.MILLISECONDS);
+            String encoded = Base64.getEncoder().encodeToString(value.getBytes());
+            redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, encoded, ttlMillis, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw new ApiException(ErrorCode.INTERNAL_ERROR);
         }
@@ -409,9 +239,14 @@ public class AuthService {
                     "username", username,
                     "refresh_count", refreshCount
             ));
-            redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, value, ttlMillis, TimeUnit.MILLISECONDS);
+            String encoded = Base64.getEncoder().encodeToString(value.getBytes());
+            redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, encoded, ttlMillis, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw new ApiException(ErrorCode.INTERNAL_ERROR);
         }
+    }
+
+    public TokenResponse loginWithGoogleIdToken(String idToken) {
+        return googleOAuth2Service.loginWithGoogleIdToken(idToken);
     }
 }
