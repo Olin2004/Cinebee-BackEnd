@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.cinebee.config.JwtConfig;
-import com.cinebee.service.TokenBlacklistService;
+import com.cinebee.service.TokenService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,7 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
     @Autowired
-    private TokenBlacklistService tokenBlacklistService;
+    private TokenService tokenService;
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
@@ -35,8 +35,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String token = getJwtFromRequest(request);
         if (token != null && jwtConfig.validateToken(token)) {
-            // Kiểm tra blacklist qua service
-            if (tokenBlacklistService.isBlacklisted(token)) {
+            // Kiểm tra blacklist qua TokenService
+            if (tokenService.isTokenBlacklisted(token)) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token is blacklisted");
                 return;
             }

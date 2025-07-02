@@ -1,9 +1,7 @@
 package com.cinebee.service;
 
-import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,8 +35,6 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
-    private TokenBlacklistService tokenBlacklistService;
-    @Autowired
     private JwtConfig jwtConfig;
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -48,10 +44,10 @@ public class AuthService {
     private UsernameGenerator usernameGenerator;
     @Autowired
     private GoogleOAuth2Service googleOAuth2Service;
-
-    private static final int MAX_REFRESH_COUNT = 5;
-    private static final String REFRESH_TOKEN_PREFIX = "refresh:";
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private RestTemplate restTemplate;
+    @Autowired
+    private TokenService tokenService;
 
     /**
      * Register a new user with unique email and phone number. Username is
@@ -96,7 +92,7 @@ public class AuthService {
     public TokenResponse login(LoginRequest request) {
         validateLoginRequest(request);
         User user = getUserForLogin(request);
-        return createTokenResponse(user, 0);
+        return tokenService.createTokenResponse(user, 0);
     }
 
     private void validateLoginRequest(LoginRequest request) {
@@ -148,40 +144,7 @@ public class AuthService {
      * @return TokenResponse with new tokens and user role
      */
     public TokenResponse refreshToken(String refreshToken) {
-        String redisKey = REFRESH_TOKEN_PREFIX + refreshToken;
-        String value = redisTemplate.opsForValue().get(redisKey);
-        if (value == null) {
-            throw new ApiException(ErrorCode.TOKEN_INVALID);
-        }
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = objectMapper.readValue(value, Map.class);
-            String username = (String) data.get("username");
-            int refreshCount = (int) (data.get("refresh_count") instanceof Integer ? data.get("refresh_count") : ((Number)data.get("refresh_count")).intValue());
-            if (refreshCount >= MAX_REFRESH_COUNT) {
-                redisTemplate.delete(redisKey);
-                throw new ApiException(ErrorCode.REFRESH_TOKEN_LIMIT_EXCEEDED);
-            }
-            User user = userRepository.findByUsername(username).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_EXISTED));
-            redisTemplate.delete(redisKey);
-            return createTokenResponse(user, refreshCount + 1);
-        } catch (ApiException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new ApiException(ErrorCode.INTERNAL_ERROR);
-        }
-    }
-
-    private TokenResponse createTokenResponse(User user, int refreshCount) {
-        String accessToken = jwtConfig.generateToken(user);
-        String refreshToken = jwtConfig.generateRefreshToken(user);
-        saveRefreshTokenWithCount(refreshToken, user.getUsername(), refreshCount, jwtConfig.getRefreshExpirationMs());
-        TokenResponse response = new TokenResponse();
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setRole(user.getRole().name());
-        response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
-        return response;
+        return tokenService.refreshToken(refreshToken);
     }
 
     public void logout(String accessToken) {
@@ -194,7 +157,7 @@ public class AuthService {
         }
         long ttl = exp - now;
         if (ttl > 0) {
-            tokenBlacklistService.blacklist(accessToken, ttl);
+            tokenService.blacklistToken(accessToken, ttl);
         }
     }
 
@@ -202,7 +165,6 @@ public class AuthService {
 
     public boolean verifyRecaptcha(String recaptchaToken) {
         String url = "https://www.google.com/recaptcha/api/siteverify";
-        RestTemplate restTemplate = new RestTemplate();
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("secret", recaptchaSecret);
         params.add("response", recaptchaToken);
@@ -216,34 +178,6 @@ public class AuthService {
             return false;
         String real = redisTemplate.opsForValue().get("captcha:" + captchaKey);
         return real != null && real.equalsIgnoreCase(captcha);
-    }
-
-    // Khi sinh refresh token, lưu refresh_count = 0
-    private void saveRefreshToken(String refreshToken, String username, long ttlMillis) {
-        try {
-            String value = objectMapper.writeValueAsString(Map.of(
-                    "username", username,
-                    "refresh_count", 0
-            ));
-            String encoded = Base64.getEncoder().encodeToString(value.getBytes());
-            redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, encoded, ttlMillis, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            throw new ApiException(ErrorCode.INTERNAL_ERROR);
-        }
-    }
-
-    // Khi update refresh token, tăng refresh_count
-    private void saveRefreshTokenWithCount(String refreshToken, String username, int refreshCount, long ttlMillis) {
-        try {
-            String value = objectMapper.writeValueAsString(Map.of(
-                    "username", username,
-                    "refresh_count", refreshCount
-            ));
-            String encoded = Base64.getEncoder().encodeToString(value.getBytes());
-            redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, encoded, ttlMillis, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            throw new ApiException(ErrorCode.INTERNAL_ERROR);
-        }
     }
 
     public TokenResponse loginWithGoogleIdToken(String idToken) {
