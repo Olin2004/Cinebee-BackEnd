@@ -9,9 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RequestPart;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.cinebee.service.MovieService;
 
 
@@ -60,11 +59,13 @@ public class MovieController {
             @ApiResponse(responseCode = "200", description = "Movie added successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid input")
     })
-    @PostMapping(value = "/add-new-film", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MovieResponse> addMovie(
-            @Parameter(description = "JSON object with movie information") @Valid @RequestPart("info") MovieRequest movieRequest,
-            @Parameter(description = "Poster image file") @RequestPart(value = "posterImageFile", required = false) MultipartFile posterImageFile) {
-        MovieResponse saved = movieService.addMovie(movieRequest, posterImageFile);
+    @PostMapping("/add-new-film")
+    public ResponseEntity<?> addMovie(
+            @Parameter(description = "JSON string with movie information") @RequestPart("info") String info,
+            @Parameter(description = "Poster image file") @RequestPart(value = "posterImageFile", required = false) MultipartFile posterImageFile) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        MovieRequest req = mapper.readValue(info, MovieRequest.class);
+        MovieResponse saved = movieService.addMovie(req, posterImageFile);
         return ResponseEntity.ok(saved);
     }
 
@@ -74,12 +75,15 @@ public class MovieController {
             @ApiResponse(responseCode = "400", description = "Invalid input"),
             @ApiResponse(responseCode = "404", description = "Movie not found")
     })
-    @PostMapping(value = "/update-film", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<MovieResponse> updateMovie(
+    @PostMapping("/update-film")
+    public ResponseEntity<?> updateMovie(
             @Parameter(description = "ID of the movie to update") @RequestParam("id") Long id,
-            @Parameter(description = "JSON object with updated movie information") @Valid @RequestPart("info") MovieRequest movieRequest,
-            @Parameter(description = "New poster image file") @RequestPart(value = "posterImageFile", required = false) MultipartFile posterImageFile) {
-        MovieResponse updated = movieService.updateMovie(id, movieRequest, posterImageFile);
+            @Parameter(description = "JSON string with updated movie information") @RequestPart("info") String info,
+            @Parameter(description = "New poster image file") @RequestPart(value = "posterImageFile", required = false) MultipartFile posterImageFile
+    ) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        MovieRequest req = mapper.readValue(info, MovieRequest.class);
+        MovieResponse updated = movieService.updateMovie(id, req, posterImageFile);
         return ResponseEntity.ok(updated);
     }
 
