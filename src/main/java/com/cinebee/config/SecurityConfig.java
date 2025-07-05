@@ -32,7 +32,11 @@ public class SecurityConfig {
     private static final  String[] White_List= {
             "/api/auth/**",
             "/api/movies/trending", "/api/movies","/api/movies/all-by-likes","/api/movies/search",
-            "/api/banner/active"
+            "/api/banner/active",
+            // Swagger UI
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs/**"
 
     };
     private static final String[] Admin_Only_List = {
