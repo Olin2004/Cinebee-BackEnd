@@ -11,7 +11,7 @@ public class LoginRequest {
     private String username;
     @NotBlank(message = "Password is required")
     private String password;
-    private String recaptchaToken; // Thêm trường này
+    private String recaptchaToken;
     private String captchaKey;
     private String captcha;
 

@@ -1,5 +1,7 @@
 package com.cinebee.dto.request;
 
+import java.sql.Date;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,4 +15,9 @@ public class MovieRequest {
     private String genre;
     private String posterUrl;
     private String description;
+    private String actors;
+    private String director;
+    private String country;
+    private Date releaseDate;
+
 }

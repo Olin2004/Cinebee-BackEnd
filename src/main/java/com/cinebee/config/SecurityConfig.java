@@ -32,12 +32,16 @@ public class SecurityConfig {
     private static final  String[] White_List= {
             "/api/auth/**",
             "/api/movies/trending", "/api/movies","/api/movies/all-by-likes","/api/movies/search",
+            "/api/banner/active"
 
     };
     private static final String[] Admin_Only_List = {
             "/api/movies/add-new-film",
             "/api/movies/update-film",
-            "/api/movies/delete"
+            "/api/movies/delete",
+            "/api/banner/add-banner",
+            "/api/movies//list-movies"
+
     };
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;

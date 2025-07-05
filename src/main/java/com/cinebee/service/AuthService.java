@@ -22,7 +22,7 @@ import com.cinebee.entity.User;
 import com.cinebee.exception.ApiException;
 import com.cinebee.exception.ErrorCode;
 import com.cinebee.repository.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.cinebee.util.UsernameGenerator;
 
 @Service

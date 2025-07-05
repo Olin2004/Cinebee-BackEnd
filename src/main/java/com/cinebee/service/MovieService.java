@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
-import com.cinebee.dto.response.PageResponse;
+
 import com.cinebee.dto.response.MovieResponse;
 import com.cinebee.entity.Movie;
 import com.cinebee.mapper.MovieMapper;
@@ -41,7 +41,7 @@ public class MovieService {
     @Transactional(readOnly = true)
     public List<MovieResponse> getTrendingMovies(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        Page<Movie> page = movieRepository.findAllByOrderByRatingDescLikesDescViewsDesc(pageable);
+        Page<Movie> page = movieRepository.findTrendingMovies(pageable);
         return IntStream.range(0, page.getContent().size())
                 .mapToObj(i -> {
                     MovieResponse res = MovieMapper.mapToTrendingMovieResponse(page.getContent().get(i));
@@ -50,23 +50,6 @@ public class MovieService {
                 })
                 .toList();
     }
-
-    /**
-     * Get a paginated response of trending movies, sorted by likes and views.
-     * @param page the page number (0-indexed)
-     * @param size the size of each page
-     * @return a PageResponse containing MovieResponse objects
-     */
-    @Transactional(readOnly = true)
-    public PageResponse<MovieResponse> getTrendingMoviesPageResponse(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        var moviePage = movieRepository.findAllByOrderByLikesDescViewsDesc(pageable);
-        List<MovieResponse> movies = moviePage.getContent().stream()
-                .map(MovieMapper::mapToHightRate)
-                .toList();
-        return new PageResponse<>(movies, moviePage.getTotalPages(), moviePage.getTotalElements());
-    }
-
 
     /**
      * Search for trending movies by title.
@@ -117,12 +100,7 @@ public class MovieService {
     public MovieResponse updateMovie(Long movieId, MovieRequest req, MultipartFile posterImageFile) {
         Movie movie = movieRepository.findById(movieId)
                 .orElseThrow(() -> new ApiException(ErrorCode.MOVIE_NOT_FOUND));
-        movie.setTitle(req.getTitle());
-        movie.setOthernames(req.getOthernames());
-        movie.setBasePrice(req.getBasePrice());
-        movie.setDuration(req.getDuration());
-        movie.setGenre(req.getGenre());
-        movie.setDescription(req.getDescription());
+        MovieMapper.mapUpdateMovieRequestToEntity(req, movie);
         if (posterImageFile != null && !posterImageFile.isEmpty()) {
             if (movie.getPosterPublicId() != null) {
                 try { cloudinary.uploader().destroy(movie.getPosterPublicId(), ObjectUtils.emptyMap()); } catch (Exception ignored) {}
@@ -143,5 +121,17 @@ public class MovieService {
     public void deleteMovie(Long id) {
         if (!movieRepository.existsById(id)) throw new ApiException(ErrorCode.MOVIE_NOT_FOUND);
         movieRepository.deleteById(id);
+    }
+
+    /**
+     * Get a paginated list of all movies.
+     * @param page the page number (0-indexed)
+     * @param size the size of each page
+     * @return a Page object containing Movie entities
+     */
+    @Transactional(readOnly = true)
+    public Page<Movie> getAllMoviesPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return movieRepository.findAll(pageable);
     }
 }

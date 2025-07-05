@@ -1,5 +1,7 @@
 package com.cinebee.dto.response;
 
+import java.sql.Date;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
@@ -15,10 +17,13 @@ public class MovieResponse {
     private String title;
     private String othernames;
     private Double rating;
-    private Integer votes;
     private String img;
-    private Integer likes;
     private Integer rank;
-    private Integer views;
+    private Integer duration;
+    private String genre;
+    private String actors;
+    private String director;
+    private String country;
+    private Date releaseDate;
 
 }

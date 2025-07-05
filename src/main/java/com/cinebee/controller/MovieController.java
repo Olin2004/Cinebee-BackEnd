@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RequestPart;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import com.cinebee.dto.response.PageResponse;
 import com.cinebee.service.MovieService;
 
 
@@ -31,15 +29,6 @@ public class MovieController {
     public ResponseEntity<List<MovieResponse>> getTrendingMovies() {
         List<MovieResponse> trendingMovies = movieService.getTrendingMovies(10);
         return ResponseEntity.ok(trendingMovies);
-    }
-
-    @GetMapping("/all-by-likes")
-    public ResponseEntity<PageResponse<MovieResponse>> getAllMoviesByLikes(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        int pageIndex = Math.max(page - 1, 0);
-        PageResponse<MovieResponse> pageResponse = movieService.getTrendingMoviesPageResponse(pageIndex, size);
-        return ResponseEntity.ok(pageResponse);
     }
 
     @GetMapping("/search")
@@ -76,5 +65,12 @@ public class MovieController {
     public ResponseEntity<?> deleteMovie(@RequestParam Long id) {
         movieService.deleteMovie(id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/list-movies")
+    public ResponseEntity<?> getAllMoviesPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(movieService.getAllMoviesPaged(page, size));
     }
 }

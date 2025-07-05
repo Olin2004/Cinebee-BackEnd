@@ -7,7 +7,7 @@ import com.cinebee.exception.ErrorCode;
 import com.cinebee.repository.UserRepository;
 import com.cinebee.dto.response.TokenResponse;
 import com.cinebee.config.JwtConfig;
-import com.fasterxml.jackson.databind.JsonNode;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -41,48 +41,7 @@ public class GoogleOAuth2Service {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
-    public TokenResponse loginWithGoogle(JsonNode googleUser) {
-        String email = googleUser.get("email").asText();
-        String sub = googleUser.get("sub").asText();
-        String name = googleUser.has("name") ? googleUser.get("name").asText() : null;
-        String picture = googleUser.has("picture") ? googleUser.get("picture").asText() : null;
-        Optional<User> userOpt = userRepository.findByEmail(email);
-        User user;
-        if (userOpt.isPresent()) {
-            user = userOpt.get();
-            if (user.getOauthId() == null)
-                user.setOauthId(sub);
-            if (user.getProvider() != User.Provider.GOOGLE)
-                user.setProvider(User.Provider.GOOGLE);
-            if (name != null && (user.getFullName() == null || user.getFullName().isEmpty()))
-                user.setFullName(name);
-            if (picture != null && (user.getAvatarUrl() == null || user.getAvatarUrl().isEmpty()))
-                user.setAvatarUrl(picture);
-            user.setUpdatedAt(LocalDateTime.now());
-            userRepository.save(user);
-        } else {
-            user = new User();
-            user.setUsername(generateGoogleUsername(email));
-            user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-            user.setEmail(email);
-            user.setFullName(name);
-            user.setAvatarUrl(picture);
-            user.setProvider(User.Provider.GOOGLE);
-            user.setOauthId(sub);
-            user.setRole(Role.USER);
-            user.setCreatedAt(LocalDateTime.now());
-            userRepository.save(user);
-        }
-        String accessToken = jwtConfig.generateToken(user);
-        String refreshToken = jwtConfig.generateRefreshToken(user);
-        saveRefreshTokenToRedis(refreshToken, user.getUsername(), jwtConfig.getRefreshExpirationMs());
-        TokenResponse response = new TokenResponse();
-        response.setAccessToken(accessToken);
-        response.setRefreshToken(refreshToken);
-        response.setRole(user.getRole().name());
-        response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
-        return response;
-    }
+
 
     public TokenResponse loginWithGoogleIdToken(String idToken) {
         try {

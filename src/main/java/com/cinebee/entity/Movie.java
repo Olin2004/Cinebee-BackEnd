@@ -60,10 +60,17 @@ public class Movie {
     @Column
     private Integer votes = 0;
 
-    @Column
-    private Integer likes = 0;
 
     @Column
     private Integer views = 0;
 
+    // Thêm các trường mới
+    @Column(length = 255)
+    private String actors; // Diễn viên
+
+    @Column(length = 255)
+    private String director; // Đạo diễn
+
+    @Column(length = 100)
+    private String country; // Quốc gia
 }

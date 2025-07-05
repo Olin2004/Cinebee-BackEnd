@@ -31,7 +31,9 @@ public class Ticket {
 
     @Column(nullable = false)
     private Boolean isCancelled = false;
-
+    @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
+    @Column
+    private Integer ticketSales = 0;
     // ...getter, setter...
 }
