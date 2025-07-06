@@ -1,14 +1,15 @@
 package com.cinebee.controller;
 
+import com.cinebee.dto.request.GoogleTokenRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-
+import jakarta.servlet.http.HttpServletResponse;
 import com.cinebee.dto.response.TokenResponse;
 import com.cinebee.service.AuthService;
+import com.cinebee.util.TokenCookieUtil;
 
-import jakarta.servlet.http.HttpServletRequest;
+
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -18,47 +19,26 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<TokenResponse> refreshToken(@RequestParam String refreshToken) {
-        TokenResponse response = authService.refreshToken(refreshToken);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<TokenResponse> refreshToken(@CookieValue(name = "refreshToken") String refreshToken, HttpServletResponse response) {
+        TokenResponse tokenResponse = authService.refreshToken(refreshToken, response);
+        return ResponseEntity.ok(tokenResponse);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.badRequest().body("No token provided");
-        }
-        String token = authHeader.substring(7);
-        authService.logout(token);
-        // Trả về message và token vừa logout
-        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {
-            {
-                put("message", "Logged out successfully");
-                put("token", token);
-            }
-        });
+    public ResponseEntity<?> logout(@CookieValue(name = "accessToken") String accessToken) {
+        authService.logout(accessToken);
+        // Xóa cookie accessToken và refreshToken phía client
+        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {{
+            put("message", "Logged out successfully");
+        }});
     }
 
     @PostMapping("/google")
-    public ResponseEntity<TokenResponse> loginWithGoogle(@RequestBody GoogleTokenRequest request) {
-        // Xác thực Google ID token, lấy thông tin user, lưu DB, trả về JWT
-        TokenResponse response = authService.loginWithGoogleIdToken(request.getIdToken());
-        return ResponseEntity.ok(response);
+    public ResponseEntity<TokenResponse> loginWithGoogle(@RequestBody GoogleTokenRequest request, HttpServletResponse response) {
+        TokenResponse tokenResponse = authService.loginWithGoogleIdToken(request.getIdToken(), response);
+        return ResponseEntity.ok(tokenResponse);
     }
 
 
 }
 
-// DTO nhận Google ID token từ FE
-class GoogleTokenRequest {
-    private String idToken;
-
-    public String getIdToken() {
-        return idToken;
-    }
-
-    public void setIdToken(String idToken) {
-        this.idToken = idToken;
-    }
-}

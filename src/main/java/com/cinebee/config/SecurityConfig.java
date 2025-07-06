@@ -4,6 +4,7 @@ import static org.springframework.security.config.Customizer.*;
 
 import java.util.List;
 
+import com.cinebee.common.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +29,21 @@ import com.cinebee.security.JwtAuthenticationFilter;
 @EnableWebSecurity
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    public static final  String[] White_List= {
+            "/api/auth/**",
+            "/api/movies/trending", "/api/movies","/api/movies/all-by-likes","/api/movies/search",
+            "/api/banner/active",
+            "/v3/api-docs/**"
 
+    };
+    public static final String[] Admin_Only_List = {
+            "/api/movies/add-new-film",
+            "/api/movies/update-film",
+            "/api/movies/delete-film",
+            "/api/banner/add-banner",
+            "/api/movies/list-movies"
+
+    };
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
@@ -47,11 +62,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/login", "/api/register").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(White_List).permitAll()
+                        .requestMatchers(Admin_Only_List).hasRole(Role.ADMIN.name())
                         .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers("/api/movies/trending", "/api/movies","/api/movies/all-by-likes-paged").permitAll() // Cho phép truy cập không
-                                                                                            // cần auth
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
@@ -63,10 +76,9 @@ public class SecurityConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:3000")); // FE domain
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowedMethods(List.of("GET", "POST"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
         config.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);

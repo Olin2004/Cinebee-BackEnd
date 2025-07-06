@@ -1,113 +1,187 @@
-# Cinema Zino Backend - Deployment & System Architecture
+# Cinebee Backend
 
-## 1. System Overview
+## Overview
 
-Cinema Zino Backend is a modern movie theater management system, providing APIs for:
-- User registration and login (standard, Google, captcha)
-- User management and authorization
-- Movie, showtime, room, ticket, and payment management
-- Email confirmation, JWT security
-- Account status management (active, banned)
-- Trending movies statistics by view count
+Cinebee Backend is a robust and modern movie theater management system built with Spring Boot. It provides a comprehensive suite of RESTful APIs for:
 
-## 2. Project Structure
+-   **User Authentication:** Secure JWT-based authentication, Google OAuth2 integration, and CAPTCHA verification.
+-   **User & Role Management:** Efficient management of user accounts and roles.
+-   **Movie Management:** Full CRUD operations for movies, including trending, search, and listing functionalities.
+-   **Secure File Uploads:** Integration with Cloudinary for secure and efficient image storage.
+-   **Email Services:** Account confirmation and status updates via email.
+-   **Analytics:** APIs for trending movies and various statistics.
+
+## Tech Stack
+
+-   **Java 21:** The core programming language.
+-   **Spring Boot 3:** Framework for building robust, production-ready applications.
+-   **Spring Security (JWT):** For authentication and authorization using JSON Web Tokens.
+-   **Spring Data JPA (MySQL):** For data persistence and interaction with the MySQL database.
+-   **Redis:** Used for caching (e.g., CAPTCHA, token blacklist) to improve performance.
+-   **Cloudinary:** A cloud-based media management platform for image and video uploads.
+-   **Docker:** For containerizing Redis, ensuring easy setup and consistent environments.
+-   **Maven:** Dependency management and build automation tool.
+
+## Project Structure
 
 ```
-cinema-zino-backend/
-├── docker-compose.yml         # Run Redis (and can be extended for DB)
-├── pom.xml                    # Maven dependencies
-├── README.md                  # Deployment & system structure guide
+Cinebee-BackEnd/
+├── docker-compose.yml      # Docker configuration for Redis
+├── pom.xml                 # Maven project configuration
+├── README.md               # Project documentation
 ├── src/
 │   └── main/
-│       ├── java/com/cinemazino/
-│       │   ├── config/        # Security, JWT, CORS, Captcha configs
-│       │   ├── controller/    # API endpoints (auth, profile, movie...)
-│       │   ├── dto/           # Request/response objects
-│       │   ├── entity/        # JPA entities (User, Movie, Ticket...)
-│       │   ├── exception/     # Global exception handling
-│       │   ├── repository/    # JPA repositories
-│       │   ├── security/      # JWT filter, user details
-│       │   ├── service/       # Business logic (Auth, Email, Movie...)
-│       │   └── util/          # Utilities
+│       ├── java/com/cinebee/
+│       │   ├── config/         # Security, JWT, CORS, Cloudinary configurations
+│       │   ├── controller/     # REST API endpoints (auth, movie, etc.)
+│       │   ├── dto/            # Data Transfer Objects for requests and responses
+│       │   ├── entity/         # JPA entities (User, Movie, Banner, etc.)
+│       │   ├── exception/      # Custom exceptions and global exception handling
+│       │   ├── mapper/         # Mappers for converting entities to DTOs and vice-versa
+│       │   ├── repository/     # Spring Data JPA repositories for database operations
+│       │   ├── security/       # JWT filter, custom user details service
+│       │   └── service/        # Business logic and service implementations
 │       └── resources/
-│           ├── application.yml # Spring Boot, DB, Redis, JWT, Google configs
-│           └── ...
+│           └── application.yml # Spring Boot, DB, Redis, JWT, Cloudinary properties
 └── ...
 ```
 
-## 3. Technologies Used
-- Java 21, Spring Boot 3
-- Spring Security (JWT)
-- Spring Data JPA (MySQL)
-- Redis (for captcha, token blacklist)
-- Docker (for Redis)
-- Google OAuth2, Email SMTP
+## Environment Variables (.env)
 
-## 4. Local Deployment Guide
+Create a `.env` file in the project root directory with the following variables. **Do NOT commit this file to your version control system.**
 
-### 4.1. Prerequisites
-- Java 21
-- Maven
-- MySQL (create DB cinema_zino)
-- Docker (for Redis)
+```
+# Database Configuration
+DB_USERNAME=your_mysql_username
+DB_PASSWORD=your_mysql_password
 
-### 4.2. Run Redis with Docker
-```sh
-docker-compose up -d
+# Redis Configuration
+REDIS_PASSWORD=your_redis_password
+
+# Email Configuration (for account confirmation, etc.)
+MAIL_USERNAME=your_email@example.com
+MAIL_PASSWORD=your_email_app_password
+
+# JWT Configuration
+JWT_SECRET=aVeryLongAndSecureRandomSecretKeyForJWT
+
+# reCAPTCHA Configuration
+RECAPTCHA_SECRET=your_recaptcha_secret_key
+
+# Google OAuth2 Configuration
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
-### 4.3. Environment Variables
-- Create a `.env` file at the project root:
-```
-GOOGLE_CLIENT_SECRET=... # Get from Google Cloud
-```
+## How to Run the Project
 
-### 4.4. Configure DB, Redis, Google, JWT in `src/main/resources/application.yml`
-- Sample config provided, just update DB user/pass and Google client-id if needed.
+Follow these steps to set up and run the Cinebee Backend locally:
 
-### 4.5. Build & Run Backend
-```sh
-mvn clean install
-mvn spring-boot:run
-```
+1.  **Prerequisites:**
+    *   Java Development Kit (JDK) 21 or higher
+    *   Apache Maven
+    *   MySQL Database Server
+    *   Docker (for running Redis)
 
-### 4.6. Test API
-- FE calls API via http://localhost:8080
-- Test login, register, captcha, profile, movies, tickets, etc.
+2.  **Database Setup:**
+    *   Create a MySQL database named `cinebee`. You can adjust the database name in `src/main/resources/application.yml` if needed.
 
-## 5. Deployment Notes
-- Do not commit `.env` to git (keep client secret safe)
-- Ensure ports 8080 (BE), 6379 (Redis), 3306 (MySQL) are open
-- FE must send accessToken in Authorization header for protected APIs
-- CORS is configured to allow FE from http://localhost:3000
+3.  **Environment Variables:**
+    *   Create the `.env` file in the project root as described in the "Environment Variables" section above and fill in your credentials.
 
-## 6. Production & Scaling
-- Deploy backend to server/cloud (Vercel, AWS, Azure, etc.)
-- Use S3/Cloud for trailers, movie images, only store URLs in DB
-- Extend docker-compose to run MySQL, backend, etc.
+4.  **Start Redis (using Docker):**
+    ```bash
+    docker-compose up -d
+    ```
+    This command will start the Redis container in detached mode.
+
+5.  **Build and Run the Application:**
+    ```bash
+    mvn clean install
+    mvn spring-boot:run
+    ```
+    The `mvn clean install` command compiles the project and packages it. `mvn spring-boot:run` starts the Spring Boot application.
+
+6.  **Access the API:**
+    *   The application will typically run on `http://localhost:8080`.
+    
+
+## API Usage
+
+The API endpoints are designed to be intuitive and follow RESTful principles. All protected endpoints require a valid JWT in the `Authorization: Bearer <token>` header.
+
+### Authentication Endpoints
+
+-   **User Registration:**
+    *   `POST /api/auth/register`
+    *   Description: Register a new user account.
+-   **User Login:**
+    *   `POST /api/auth/login`
+    *   Description: Authenticate a user and receive a JWT.
+-   **Google OAuth2 Login:**
+    *   `POST /api/auth/google`
+    *   Description: Authenticate using a Google token.
+
+### Movie Endpoints
+
+-   **Get Trending Movies:**
+    *   `GET /api/movies/trending`
+    *   Description: Retrieves a list of trending movies.
+    *   Authentication: None required.
+-   **Search Movies:**
+    *   `GET /api/movies/search?title={title}`
+    *   Description: Searches for movies by title.
+    *   Authentication: None required.
+-   **Add New Movie (Admin Only):**
+    *   `POST /api/movies/add-new-film`
+    *   Description: Adds a new movie to the database. Supports optional poster image upload.
+    *   Authentication: Requires `ADMIN` role.
+    *   Request Body (form-data):
+        *   `info` (Text): JSON string containing movie details.
+            ```json
+            {
+              "title": "Movie Title",
+              "othernames": "Alternative Title",
+              "basePrice": 100000,
+              "duration": 120,
+              "genre": "Action",
+              "description": "A brief description of the movie.",
+              "posterUrl": "https://example.com/default-poster.jpg"
+            }
+            ```
+        *   `posterImageFile` (File): (Optional) The movie poster image file.
+-   **Update Movie (Admin Only):**
+    *   `POST /api/movies/update-film?id={movieId}`
+    *   Description: Updates an existing movie's information and/or poster image.
+    *   Authentication: Requires `ADMIN` role.
+    *   Request Body (form-data): Same as "Add New Movie".
+-   **Delete Movie (Admin Only):**
+    *   `POST /api/movies/delete?id={movieId}`
+    *   Description: Deletes a movie by its ID.
+    *   Authentication: Requires `ADMIN` role.
+
+### Other Endpoints
+
+-   **CAPTCHA Generation:**
+    *   `GET /api/captcha/generate`
+    *   Description: Generates a new CAPTCHA image and returns its ID.
+-   **User Profile:**
+    *   `GET /api/profile`
+    *   Description: Retrieves the authenticated user's profile information.
+    *   Authentication: Requires valid JWT.
+
+## Testing Tips
+
+-   Use tools like Postman, Insomnia, or your preferred REST client for testing API endpoints.
+-   For endpoints requiring file uploads, always use `form-data` and ensure the `info` field is sent as a JSON string (Text type) and `posterImageFile` as a File type.
+-   When testing admin-only APIs, ensure you include a valid JWT token for an `ADMIN` user in the `Authorization` header.
+-   If you encounter a `403 Forbidden` error, verify your JWT token and the user's assigned role.
 
 ---
 
-## 7. Contribution & Development
-- Fork, create a branch, and submit pull requests to contribute
-- Contact admin for admin privileges
-
----
-
-# Cinema Zino Backend - Modern, secure, and scalable movie theater management system!
-
----
-
-## Main Functionality Comments (in English)
-
-- **Controllers**: Handle HTTP requests and return responses. Example: `ProfileController` returns user profile info, `AuthController` handles login/logout/refresh.
-- **Services**: Contain business logic. Example: `AuthService` manages authentication, registration, Google login, token refresh, etc.
-- **Repositories**: Interface with the database using Spring Data JPA.
-- **Entities**: Represent database tables. Example: `User`, `Movie`, `Ticket`.
-- **Security**: JWT authentication filter, user details service, and security config for endpoint protection.
-- **Captcha**: Generates and validates captcha for login/registration security.
-- **Trending Movies**: Movies are sorted by viewCount, and the trending API returns the most viewed movies.
-- **Account Status**: User entity includes a status field (ACTIVE, BANNED) to manage account state.
-- **Email Service**: Sends registration confirmation and other notifications.
-
-// All methods and classes are commented in English to explain their purpose and usage.
+For more detailed information, refer to the source code within each package and controller.

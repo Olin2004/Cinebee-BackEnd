@@ -1,9 +1,8 @@
 package com.cinebee.exception;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
-
-import lombok.Getter;
 
 @Getter
 public enum ErrorCode {
@@ -19,6 +18,7 @@ public enum ErrorCode {
     PASSWORD_INVALID(1003, "Password must be at least {min} characters", HttpStatus.BAD_REQUEST),
     PASSWORD_MISMATCH(1004, "Password and confirm password do not match", HttpStatus.BAD_REQUEST),
     INVALID_DOB(1005, "Your age must be at least {min}", HttpStatus.BAD_REQUEST),
+    EMAIL_SEND_FAILED(1006, "Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Auth / Token errors
     TOKEN_NOT_FOUND(2001, "Token not found", HttpStatus.BAD_REQUEST),
@@ -48,7 +48,21 @@ public enum ErrorCode {
 
     // Other possible errors
     SERVICE_UNAVAILABLE(6001, "Service is temporarily unavailable", HttpStatus.SERVICE_UNAVAILABLE),
-    TOO_MANY_REQUESTS(6002, "Too many requests - try again later", HttpStatus.TOO_MANY_REQUESTS);
+    TOO_MANY_REQUESTS(6002, "Too many requests - try again later", HttpStatus.TOO_MANY_REQUESTS),
+    REFRESH_TOKEN_LIMIT_EXCEEDED(6003, "Refresh token has exceeded the allowed number of uses. Please login again.", HttpStatus.UNAUTHORIZED),
+
+    // Movie-related errors
+    MOVIE_NOT_FOUND(7001, "Movie not found", HttpStatus.NOT_FOUND),
+    MOVIE_IMAGE_UPLOAD_FAILED(7002, "Failed to upload movie image", HttpStatus.INTERNAL_SERVER_ERROR),
+    MOVIE_IMAGE_DELETE_FAILED(7003, "Failed to delete old movie image", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // Banner-related errors
+    BANNER_NOT_FOUND(9001, "Banner not found", HttpStatus.NOT_FOUND),
+
+    // AuthService errors
+    CAPTCHA_INVALID(8001, "Captcha is incorrect or expired", HttpStatus.BAD_REQUEST),
+    USERNAME_OR_PHONE_INVALID(8002, "Username/email/phone is required and must be at least 3 characters", HttpStatus.BAD_REQUEST),
+    PHONE_INVALID_FORMAT(8005, "Invalid Vietnamese phone number format (10 digits, starts with 0)", HttpStatus.BAD_REQUEST);
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

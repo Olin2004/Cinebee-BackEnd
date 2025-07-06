@@ -1,17 +1,20 @@
 package com.cinebee.service;
 
+import com.cinebee.exception.ApiException;
+import com.cinebee.exception.ErrorCode;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Async
     public void sendRegistrationSuccess(String to, String name) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -33,7 +36,7 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
         } catch (Exception e) {
-            // Handle exception (log or ignore)
+            throw new ApiException(ErrorCode.EMAIL_SEND_FAILED);
         }
     }
 }
