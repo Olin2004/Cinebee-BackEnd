@@ -8,7 +8,7 @@ Cinebee Backend is a robust and modern movie theater management system built wit
 -   **User & Role Management:** Efficient management of user accounts and roles.
 -   **Movie Management:** Full CRUD operations for movies, including trending, search, and listing functionalities.
 -   **Secure File Uploads:** Integration with Cloudinary for secure and efficient image storage.
--   **Email Services:** Account confirmation and status updates via email.
+-   **Email Services:** Account confirmation and status updates via email (now asynchronous).
 -   **Analytics:** APIs for trending movies and various statistics.
 
 ## Tech Stack
@@ -40,11 +40,109 @@ Cinebee-BackEnd/
 │       │   ├── mapper/         # Mappers for converting entities to DTOs and vice-versa
 │       │   ├── repository/     # Spring Data JPA repositories for database operations
 │       │   ├── security/       # JWT filter, custom user details service
-│       │   └── service/        # Business logic and service implementations
+│       │   └── service/        # Business logic and service implementations (now with interfaces and implementations)
 │       └── resources/
 │           └── application.yml # Spring Boot, DB, Redis, JWT, Cloudinary properties
 └── ...
 ```
+
+## Database Schema and Relationships
+
+Below is a detailed breakdown of the database tables and their relationships, derived from the JPA entities.
+
+### **1. Table: `Users`**
+*   **Description:** Stores user information.
+*   **Key Columns:** `id` (PK), `username` (Unique), `email` (Unique), `phoneNumber` (Unique), `password`, `fullName`, `dateOfBirth`, `avatarUrl`, `oauthId`, `provider`, `role`, `userStatus`, `createdAt`, `updatedAt`.
+*   **Indexes:** `idx_username` on `username`, `idx_email` on `email`.
+*   **Relationships:**
+    *   `One-to-Many` with `Comments`: One user can write many comments.
+    *   `One-to-Many` with `Payments`: One user can make many payments.
+    *   `One-to-Many` with `Tickets`: One user can book many tickets.
+
+### **2. Table: `Movies`**
+*   **Description:** Stores detailed information about movies.
+*   **Key Columns:** `id` (PK), `title` (Non-null), `description`, `duration` (Non-null), `posterUrl`, `posterPublicId`, `releaseDate`, `genre`, `basePrice` (Non-null), `discountPercentage`, `createdAt`, `othernames`, `rating`, `votes`, `views`, `actors`, `director`, `country`.
+*   **Relationships:**
+    *   `One-to-Many` with `Banners`: One movie can appear on many banners.
+    *   `One-to-Many` with `Comments`: One movie can have many comments.
+    *   `One-to-Many` with `Showtimes`: One movie can have many showtimes.
+    *   `One-to-Many` with `Trailers`: One movie can have many trailers.
+
+### **3. Table: `banners`**
+*   **Description:** Stores information about promotional banners.
+*   **Key Columns:** `id` (PK), `title`, `description`, `bannerUrl`, `startDate`, `endDate`, `isActive`.
+*   **Relationships:**
+    *   `Many-to-One` with `Movies`: Many banners can link to one movie (via `movie_id` foreign key).
+
+### **4. Table: `Comments`**
+*   **Description:** Stores user comments on movies.
+*   **Key Columns:** `id` (PK), `content` (Non-null), `createdAt`.
+*   **Relationships:**
+    *   `Many-to-One` with `Movies`: Each comment belongs to one movie (via `movie_id` foreign key, non-null).
+    *   `Many-to-One` with `Users`: Each comment is made by one user (via `user_id` foreign key, non-null).
+
+### **5. Table: `Payments`**
+*   **Description:** Stores payment transaction details for tickets.
+*   **Key Columns:** `id` (PK), `amount` (Non-null), `paymentMethod` (Enum, Non-null), `paymentStatus` (Enum, Non-null), `createdAt`.
+*   **Relationships:**
+    *   `Many-to-One` with `Tickets`: Each payment is for one ticket (via `ticket_id` foreign key, non-null).
+    *   `Many-to-One` with `Users`: Each payment is made by one user (via `user_id` foreign key).
+
+### **6. Table: `Rooms`**
+*   **Description:** Stores information about cinema rooms within a theater.
+*   **Key Columns:** `id` (PK), `name` (Non-null), `capacity`, `createdAt`.
+*   **Unique Constraints:** `(theater_id, name)`.
+*   **Relationships:**
+    *   `Many-to-One` with `Theaters`: Each room belongs to one theater (via `theater_id` foreign key, non-null).
+    *   `One-to-Many` with `Room_Seats`: One room has many defined seats.
+    *   `One-to-Many` with `Showtimes`: One room can host many showtimes.
+
+### **7. Table: `Room_Seats`**
+*   **Description:** Defines the seats within a specific cinema room.
+*   **Key Columns:** `id` (PK), `seatNumber` (Non-null), `seatType` (Enum, Non-null).
+*   **Unique Constraints:** `(room_id, seat_number)`.
+*   **Relationships:**
+    *   `Many-to-One` with `Rooms`: Each room seat belongs to one room (via `room_id` foreign key, non-null).
+
+### **8. Table: `Seats`**
+*   **Description:** Stores the status and pricing of individual seats for a specific showtime.
+*   **Key Columns:** `id` (PK), `seatNumber` (Non-null), `seatType` (Enum, Non-null), `isAvailable`, `priceModifier`.
+*   **Unique Constraints:** `(showtime_id, seat_number)`.
+*   **Relationships:**
+    *   `Many-to-One` with `Showtimes`: Each seat belongs to one showtime (via `showtime_id` foreign key, non-null).
+    *   `One-to-Many` with `Tickets`: One seat in a showtime can be booked by one ticket.
+
+### **9. Table: `Showtimes`**
+*   **Description:** Stores information about movie showtimes.
+*   **Key Columns:** `id` (PK), `startTime` (Non-null), `endTime` (Non-null), `priceModifier` (Non-null), `createdAt`.
+*   **Relationships:**
+    *   `Many-to-One` with `Movies`: Each showtime features one movie (via `movie_id` foreign key, non-null).
+    *   `Many-to-One` with `Theaters`: Each showtime takes place at one theater (via `theater_id` foreign key, non-null).
+    *   `Many-to-One` with `Rooms`: Each showtime takes place in one room (via `room_id` foreign key, non-null).
+    *   `One-to-Many` with `Seats`: One showtime has many seats defined for it.
+    *   `One-to-Many` with `Tickets`: One showtime has many tickets booked for it.
+
+### **10. Table: `Theaters`**
+*   **Description:** Stores information about cinema theaters.
+*   **Key Columns:** `id` (PK), `name` (Non-null), `address`, `createdAt`.
+*   **Relationships:**
+    *   `One-to-Many` with `Rooms`: One theater can have many rooms.
+    *   `One-to-Many` with `Showtimes`: One theater can host many showtimes.
+
+### **11. Table: `Tickets`**
+*   **Description:** Stores information about booked tickets.
+*   **Key Columns:** `id` (PK), `price` (Non-null), `bookedAt` (Non-null), `isCancelled`, `cancelledAt`, `ticketSales`.
+*   **Relationships:**
+    *   `Many-to-One` with `Users`: Each ticket is booked by one user (via `user_id` foreign key).
+    *   `Many-to-One` with `Showtimes`: Each ticket is for one showtime (via `showtime_id` foreign key, non-null).
+    *   `Many-to-One` with `Seats`: Each ticket is for one specific seat in a showtime (via `seat_id` foreign key, non-null).
+    *   `One-to-Many` with `Payments`: One ticket can have multiple associated payments.
+
+### **12. Table: `trailers`**
+*   **Description:** Stores URLs for movie trailers.
+*   **Key Columns:** `id` (PK), `trailerUrl` (Non-null).
+*   **Relationships:**
+    *   `Many-to-One` with `Movies`: Each trailer belongs to one movie (via `movie_id` foreign key, non-null).
 
 ## Environment Variables (.env)
 
@@ -109,7 +207,6 @@ Follow these steps to set up and run the Cinebee Backend locally:
 
 6.  **Access the API:**
     *   The application will typically run on `http://localhost:8080`.
-    
 
 ## API Usage
 
@@ -126,6 +223,12 @@ The API endpoints are designed to be intuitive and follow RESTful principles. Al
 -   **Google OAuth2 Login:**
     *   `POST /api/auth/google`
     *   Description: Authenticate using a Google token.
+-   **Refresh Token:**
+    *   `POST /api/auth/refresh-token`
+    *   Description: Refresh an expired access token using a refresh token (sent via HttpOnly cookie).
+-   **Logout:**
+    *   `POST /api/auth/logout`
+    *   Description: Invalidate the current access token and clear authentication cookies.
 
 ### Movie Endpoints
 
@@ -161,8 +264,31 @@ The API endpoints are designed to be intuitive and follow RESTful principles. Al
     *   Authentication: Requires `ADMIN` role.
     *   Request Body (form-data): Same as "Add New Movie".
 -   **Delete Movie (Admin Only):**
-    *   `POST /api/movies/delete?id={movieId}`
+    *   `POST /api/movies/delete-film?id={movieId}`
     *   Description: Deletes a movie by its ID.
+    *   Authentication: Requires `ADMIN` role.
+-   **Get All Movies Paged:**
+    *   `GET /api/movies/list-movies?page={page}&size={size}`
+    *   Description: Returns a paginated list of all movies.
+    *   Authentication: None required.
+
+### Banner Endpoints
+
+-   **Create Banner (Admin Only):**
+    *   `POST /api/banner/create`
+    *   Description: Creates a new banner.
+    *   Authentication: Requires `ADMIN` role.
+-   **Update Banner (Admin Only):**
+    *   `PUT /api/banner/update/{id}`
+    *   Description: Updates an existing banner.
+    *   Authentication: Requires `ADMIN` role.
+-   **Get Active Banners:**
+    *   `GET /api/banner/active`
+    *   Description: Retrieves a list of currently active banners.
+    *   Authentication: None required.
+-   **Delete Banner (Admin Only):**
+    *   `DELETE /api/banner/delete/{id}`
+    *   Description: Deletes a banner by marking it as inactive.
     *   Authentication: Requires `ADMIN` role.
 
 ### Other Endpoints
