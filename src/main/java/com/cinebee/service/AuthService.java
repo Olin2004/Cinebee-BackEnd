@@ -16,5 +16,7 @@ public interface AuthService {
 
     void forgotPassword(String email);
 
+    String verifyOtp(com.cinebee.dto.request.VerifyOtpRequest request);
+
     void resetPassword(com.cinebee.dto.request.ResetPasswordRequest request);
 }

@@ -1,16 +1,18 @@
 package com.cinebee.controller;
 
+import com.cinebee.dto.request.ForgotPasswordRequest;
 import com.cinebee.dto.request.GoogleTokenRequest;
+import com.cinebee.dto.request.ResetPasswordRequest;
+import com.cinebee.dto.request.VerifyOtpRequest;
+import com.cinebee.dto.response.TokenResponse;
+import com.cinebee.service.AuthService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import jakarta.servlet.http.HttpServletResponse;
-import com.cinebee.dto.response.TokenResponse;
-import com.cinebee.service.AuthService;
 
-
-
+import java.util.HashMap;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -29,7 +31,7 @@ public class AuthController {
     public ResponseEntity<?> logout(@CookieValue(name = "accessToken") String accessToken) {
         authService.logout(accessToken);
         // Xóa cookie accessToken và refreshToken phía client
-        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {{
+        return ResponseEntity.ok(new HashMap<String, Object>() {{
             put("message", "Logged out successfully");
         }});
     }
@@ -41,17 +43,26 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@Valid @RequestBody com.cinebee.dto.request.ForgotPasswordRequest request) {
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
-        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {{
-            put("message", "Password reset link sent to your email");
+        return ResponseEntity.ok(new HashMap<String, Object>() {{
+            put("message", "Password reset OTP sent to your email");
+        }});
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        String temporaryToken = authService.verifyOtp(request);
+        return ResponseEntity.ok(new HashMap<String, Object>() {{
+            put("message", "OTP verified successfully");
+            put("temporaryToken", temporaryToken);
         }});
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@Valid @RequestBody com.cinebee.dto.request.ResetPasswordRequest request) {
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
-        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {{
+        return ResponseEntity.ok(new HashMap<String, Object>() {{
             put("message", "Password reset successfully");
         }});
     }

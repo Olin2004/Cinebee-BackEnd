@@ -214,18 +214,36 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void resetPassword(com.cinebee.dto.request.ResetPasswordRequest request) {
+    public String verifyOtp(com.cinebee.dto.request.VerifyOtpRequest request) {
         String storedOtp = redisTemplate.opsForValue().get("password-reset-otp:" + request.getEmail());
         if (storedOtp == null || !storedOtp.equals(request.getOtp())) {
-            throw new ApiException(com.cinebee.exception.ErrorCode.TOKEN_INVALID); // Re-using TOKEN_INVALID for invalid OTP
+            throw new ApiException(com.cinebee.exception.ErrorCode.TOKEN_INVALID); // Invalid OTP
         }
 
-        User user = userRepository.findByEmail(request.getEmail())
+        // OTP is correct, generate a temporary token for password reset
+        String temporaryToken = java.util.UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set("password-reset-verified:" + temporaryToken, request.getEmail(), 10, java.util.concurrent.TimeUnit.MINUTES);
+
+        // Invalidate the OTP after successful verification
+        redisTemplate.delete("password-reset-otp:" + request.getEmail());
+
+        return temporaryToken;
+    }
+
+    @Override
+    public void resetPassword(com.cinebee.dto.request.ResetPasswordRequest request) {
+        String email = redisTemplate.opsForValue().get("password-reset-verified:" + request.getTemporaryToken());
+        if (email == null) {
+            throw new ApiException(com.cinebee.exception.ErrorCode.TOKEN_INVALID); // Invalid or expired temporary token
+        }
+
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(com.cinebee.exception.ErrorCode.USER_NOT_EXISTED));
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        redisTemplate.delete("password-reset-otp:" + request.getEmail());
+        // Invalidate the temporary token after successful password reset
+        redisTemplate.delete("password-reset-verified:" + request.getTemporaryToken());
     }
 }

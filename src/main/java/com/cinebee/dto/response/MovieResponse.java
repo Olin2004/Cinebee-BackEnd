@@ -1,6 +1,6 @@
 package com.cinebee.dto.response;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -24,6 +24,6 @@ public class MovieResponse {
     private String actors;
     private String director;
     private String country;
-    private Date releaseDate;
+    private LocalDate releaseDate;
 
 }

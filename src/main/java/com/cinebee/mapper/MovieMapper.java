@@ -4,6 +4,8 @@ import com.cinebee.dto.request.MovieRequest;
 import com.cinebee.dto.response.MovieResponse;
 import com.cinebee.entity.Movie;
 
+import java.sql.Date;
+
 
 /**
  * Utility class for mapping Movie entity to response DTOs.
@@ -28,7 +30,7 @@ public class MovieMapper {
                 movie.getActors(),
                 movie.getDirector(),
                 movie.getCountry(),
-                movie.getReleaseDate() != null ? java.sql.Date.valueOf(movie.getReleaseDate()) : null
+                movie.getReleaseDate() != null ? Date.valueOf(movie.getReleaseDate()).toLocalDate() : null
         );
     }
 

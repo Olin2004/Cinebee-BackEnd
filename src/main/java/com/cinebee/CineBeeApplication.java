@@ -7,8 +7,11 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+import org.springframework.cache.annotation.EnableCaching;
+
 @EnableScheduling
 @EnableAsync
+@EnableCaching
 @SpringBootApplication
 @ComponentScan({"com.cinebee", "com.cinebee.mapper"})
 public class CineBeeApplication {
