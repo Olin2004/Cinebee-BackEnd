@@ -13,4 +13,8 @@ public interface AuthService {
     void logout(String accessToken);
     boolean verifyRecaptcha(String recaptchaToken);
     TokenResponse loginWithGoogleIdToken(String idToken, HttpServletResponse response);
+
+    void forgotPassword(String email);
+
+    void resetPassword(com.cinebee.dto.request.ResetPasswordRequest request);
 }

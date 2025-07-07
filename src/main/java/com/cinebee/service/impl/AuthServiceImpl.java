@@ -2,6 +2,7 @@ package com.cinebee.service.impl;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -197,5 +198,34 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public TokenResponse loginWithGoogleIdToken(String idToken, HttpServletResponse response) {
         return googleOAuth2Service.loginWithGoogleIdToken(idToken, response);
+    }
+
+
+
+    @Override
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ApiException(com.cinebee.exception.ErrorCode.USER_NOT_EXISTED));
+
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        redisTemplate.opsForValue().set("password-reset-otp:" + email, otp, 5, java.util.concurrent.TimeUnit.MINUTES);
+
+        emailService.sendPasswordResetOtp(email, otp);
+    }
+
+    @Override
+    public void resetPassword(com.cinebee.dto.request.ResetPasswordRequest request) {
+        String storedOtp = redisTemplate.opsForValue().get("password-reset-otp:" + request.getEmail());
+        if (storedOtp == null || !storedOtp.equals(request.getOtp())) {
+            throw new ApiException(com.cinebee.exception.ErrorCode.TOKEN_INVALID); // Re-using TOKEN_INVALID for invalid OTP
+        }
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ApiException(com.cinebee.exception.ErrorCode.USER_NOT_EXISTED));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        redisTemplate.delete("password-reset-otp:" + request.getEmail());
     }
 }

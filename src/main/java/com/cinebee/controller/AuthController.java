@@ -1,13 +1,14 @@
 package com.cinebee.controller;
 
 import com.cinebee.dto.request.GoogleTokenRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletResponse;
 import com.cinebee.dto.response.TokenResponse;
 import com.cinebee.service.AuthService;
-import com.cinebee.util.TokenCookieUtil;
+
 
 
 
@@ -39,6 +40,20 @@ public class AuthController {
         return ResponseEntity.ok(tokenResponse);
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody com.cinebee.dto.request.ForgotPasswordRequest request) {
+        authService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {{
+            put("message", "Password reset link sent to your email");
+        }});
+    }
 
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody com.cinebee.dto.request.ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(new java.util.HashMap<String, Object>() {{
+            put("message", "Password reset successfully");
+        }});
+    }
 }
 

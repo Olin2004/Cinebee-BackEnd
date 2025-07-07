@@ -18,7 +18,7 @@ import jakarta.annotation.PostConstruct;
 
 @Configuration
 public class JwtConfig {
-    @Value("${jwt.secret:cinemazinoSecretKey}")
+    @Value("${jwt.secret:cinebeeSecretKey}")
     private String jwtSecret;
 
     @Value("${jwt.expirationMs:3600000}") // 1 hour
