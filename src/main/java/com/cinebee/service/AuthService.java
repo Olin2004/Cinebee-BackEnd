@@ -1,5 +1,7 @@
 package com.cinebee.service;
 
+import java.util.concurrent.CompletableFuture;
+
 import com.cinebee.dto.request.LoginRequest;
 import com.cinebee.dto.request.RegisterRequest;
 import com.cinebee.dto.response.TokenResponse;
@@ -11,7 +13,7 @@ public interface AuthService {
     TokenResponse login(LoginRequest request, HttpServletResponse response);
     TokenResponse refreshToken(String refreshToken, HttpServletResponse response);
     void logout(String accessToken);
-    boolean verifyRecaptcha(String recaptchaToken);
+    CompletableFuture<Boolean> verifyRecaptcha(String recaptchaToken);
     TokenResponse loginWithGoogleIdToken(String idToken, HttpServletResponse response);
 
     void forgotPassword(String email);

@@ -127,29 +127,32 @@ public class MovieServiceImpl implements MovieService {
                 .orElseThrow(() -> new ApiException(ErrorCode.MOVIE_NOT_FOUND));
         MovieMapper.mapUpdateMovieRequestToEntity(req, movie);
 
-        // Handle poster image update
-        if (posterImageFile != null && !posterImageFile.isEmpty()) {
+        handlePosterImageUpdate(movie, req.getPosterUrl(), posterImageFile);
+
+        Movie updatedMovie = movieRepository.save(movie);
+        return MovieMapper.mapToTrendingMovieResponse(updatedMovie);
+    }
+
+    private void handlePosterImageUpdate(Movie movie, String newPosterUrl, MultipartFile newPosterImageFile) {
+        if (newPosterImageFile != null && !newPosterImageFile.isEmpty()) {
             // New file provided: delete old, upload new
             deleteImageFromCloudinary(movie.getPosterPublicId());
-            Map<String, Object> uploadResult = uploadImageToCloudinary(posterImageFile);
+            Map<String, Object> uploadResult = uploadImageToCloudinary(newPosterImageFile);
             movie.setPosterUrl((String) uploadResult.get("secure_url"));
             movie.setPosterPublicId((String) uploadResult.get("public_id"));
-        } else if (req.getPosterUrl() != null && !req.getPosterUrl().isEmpty()) {
+        } else if (newPosterUrl != null && !newPosterUrl.isEmpty()) {
             // No new file, but a new URL is provided in request: update URL, delete old Cloudinary image if exists
             if (movie.getPosterPublicId() != null && !movie.getPosterPublicId().isEmpty()) {
                 deleteImageFromCloudinary(movie.getPosterPublicId());
                 movie.setPosterPublicId(null); // Clear public ID as it's no longer managed by Cloudinary
             }
-            movie.setPosterUrl(req.getPosterUrl());
-        } else if (req.getPosterUrl() == null && movie.getPosterUrl() != null) {
+            movie.setPosterUrl(newPosterUrl);
+        } else if (newPosterUrl == null && movie.getPosterUrl() != null) {
             // Poster URL explicitly set to null in request, and there was an existing poster: delete old
             deleteImageFromCloudinary(movie.getPosterPublicId());
             movie.setPosterPublicId(null);
             movie.setPosterUrl(null);
         }
-
-        Movie updatedMovie = movieRepository.save(movie);
-        return MovieMapper.mapToTrendingMovieResponse(updatedMovie);
     }
 
     @Override

@@ -3,11 +3,13 @@ package com.cinebee.service.impl;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -123,7 +125,14 @@ public class AuthServiceImpl implements AuthService {
         }
         // If captchaKey and captcha are present, verify captcha
         if (request.getCaptchaKey() != null && request.getCaptcha() != null) {
-            if (!verifyTextCaptcha(request.getCaptchaKey(), request.getCaptcha())) {
+            try {
+                if (!verifyTextCaptcha(request.getCaptchaKey(), request.getCaptcha())) {
+                    throw new ApiException(ErrorCode.CAPTCHA_INVALID);
+                }
+                if (!this.verifyRecaptcha(request.getRecaptchaToken()).get()) {
+                    throw new ApiException(ErrorCode.CAPTCHA_INVALID);
+                }
+            } catch (Exception e) {
                 throw new ApiException(ErrorCode.CAPTCHA_INVALID);
             }
         }
@@ -131,21 +140,30 @@ public class AuthServiceImpl implements AuthService {
 
     private User getUserForLogin(LoginRequest request) {
         String input = request.getUsername();
-        Optional<User> userOpt = userRepository.findByUsername(input);
-        if (userOpt.isPresent() && userOpt.get().getRole() == Role.ADMIN) {
-            if (!passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
-                throw new ApiException(ErrorCode.UNAUTHORIZED);
-            }
-            return userOpt.get();
+        User user = findUserByLoginInput(input)
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
         }
-        userOpt = userRepository.findByEmail(input);
+
+        // Admin users can only log in with their username, not email or phone number
+        if (user.getRole() == Role.ADMIN && !user.getUsername().equals(input)) {
+            throw new ApiException(ErrorCode.UNAUTHORIZED);
+        }
+
+        return user;
+    }
+
+    private Optional<User> findUserByLoginInput(String input) {
+        Optional<User> userOpt = userRepository.findByUsername(input);
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByEmail(input);
+        }
         if (userOpt.isEmpty()) {
             userOpt = userRepository.findByPhoneNumber(input);
         }
-        if (userOpt.isEmpty() || !passwordEncoder.matches(request.getPassword(), userOpt.get().getPassword())) {
-            throw new ApiException(ErrorCode.UNAUTHORIZED);
-        }
-        return userOpt.get();
+        return userOpt;
     }
 
     /**
@@ -174,14 +192,15 @@ public class AuthServiceImpl implements AuthService {
 
 
     @Override
-    public boolean verifyRecaptcha(String recaptchaToken) {
+    @Async
+    public CompletableFuture<Boolean> verifyRecaptcha(String recaptchaToken) {
         String url = "https://www.google.com/recaptcha/api/siteverify";
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("secret", recaptchaSecret);
         params.add("response", recaptchaToken);
         @SuppressWarnings("unchecked")
         Map<String, Object> response = (Map<String, Object>) restTemplate.postForObject(url, params, Map.class);
-        return response != null && Boolean.TRUE.equals(response.get("success"));
+        return CompletableFuture.completedFuture(response != null && Boolean.TRUE.equals(response.get("success")));
     }
 
     private boolean verifyTextCaptcha(String captchaKey, String captcha) {
