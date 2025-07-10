@@ -12,11 +12,15 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
+
 @Entity
 @Getter
 @Setter
 @Table(name = "Movies")
-public class Movie {
+public class Movie implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

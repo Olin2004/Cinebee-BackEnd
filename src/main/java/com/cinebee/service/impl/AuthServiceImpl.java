@@ -36,6 +36,11 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    private static final String PHONE_REGEX = "^0[0-9]{9}$";
+    private static final Pattern PHONE_PATTERN = Pattern.compile(PHONE_REGEX);
+    private static final Random RANDOM = new Random();
+
     @Value("${recaptcha.secret}")
     private String recaptchaSecret;
 
@@ -116,11 +121,11 @@ public class AuthServiceImpl implements AuthService {
             throw new ApiException(ErrorCode.PASSWORD_INVALID);
         }
         boolean isEmail = input.contains("@");
-        boolean isPhone = input.matches("^0[0-9]{9}$"); // Vietnamese phone number: 10 digits, starts with 0
-        if (isEmail && !Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$").matcher(input).matches()) {
+        boolean isPhone = input.matches(PHONE_REGEX); // Vietnamese phone number: 10 digits, starts with 0
+        if (isEmail && !EMAIL_PATTERN.matcher(input).matches()) {
             throw new ApiException(ErrorCode.EMAIL_INVALID);
         }
-        if (isPhone && !Pattern.compile("^0[0-9]{9}$").matcher(input).matches()) {
+        if (isPhone && !PHONE_PATTERN.matcher(input).matches()) {
             throw new ApiException(ErrorCode.PHONE_INVALID_FORMAT);
         }
         // If captchaKey and captcha are present, verify captcha
@@ -226,7 +231,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(com.cinebee.exception.ErrorCode.USER_NOT_EXISTED));
 
-        String otp = String.format("%06d", new Random().nextInt(999999));
+        String otp = String.format("%06d", RANDOM.nextInt(999999));
         redisTemplate.opsForValue().set("password-reset-otp:" + email, otp, 5, java.util.concurrent.TimeUnit.MINUTES);
 
         emailService.sendPasswordResetOtp(email, otp);

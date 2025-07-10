@@ -8,6 +8,7 @@ import lombok.Setter;
 @Setter
 public class ResetPasswordRequest {
     @NotBlank
+
     private String temporaryToken;
 
     @NotBlank

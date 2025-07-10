@@ -11,6 +11,7 @@ import com.cinebee.util.ServiceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,11 +32,7 @@ public class BannerServiceImpl implements BannerService {
     @Transactional
     public Banner createBanner(BannerRequest request) {
         Banner banner = new Banner();
-        banner.setTitle(request.getTitle());
-        banner.setDescription(request.getDescription());
-        banner.setBannerUrl(request.getBannerUrl());
-        banner.setStartDate(request.getStartDate());
-        banner.setEndDate(request.getEndDate());
+        mapRequestToBanner(banner, request);
         banner.setActive(true);
         if (request.getMovieId() != null) {
             Movie movie = ServiceUtils.findObjectOrThrow(() -> movieRepository.findById(request.getMovieId()), ErrorCode.MOVIE_NOT_FOUND);
@@ -50,16 +47,22 @@ public class BannerServiceImpl implements BannerService {
     @Transactional
     public Banner updateBanner(Long id, BannerRequest request) {
         Banner banner = ServiceUtils.findObjectOrThrow(() -> bannerRepository.findById(id), ErrorCode.BANNER_NOT_FOUND);
+        mapRequestToBanner(banner, request);
+        banner.setActive(true);
+        return bannerRepository.save(banner);
+    }
+
+    private void mapRequestToBanner(Banner banner, BannerRequest request) {
         banner.setTitle(request.getTitle());
         banner.setDescription(request.getDescription());
         banner.setBannerUrl(request.getBannerUrl());
         banner.setStartDate(request.getStartDate());
         banner.setEndDate(request.getEndDate());
-        banner.setActive(true);
-        return bannerRepository.save(banner);
     }
 
     // Lấy danh sách banner còn hiệu lực
+    @Override
+    @Cacheable("activeBanners")
     @Transactional(readOnly = true)
     public List<Banner> getActiveBanners() {
         LocalDate today = LocalDate.now();

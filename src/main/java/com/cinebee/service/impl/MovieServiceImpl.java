@@ -7,11 +7,13 @@ import com.cinebee.exception.ErrorCode;
 import com.cinebee.mapper.MovieMapper;
 import com.cinebee.repository.MovieRepository;
 import com.cinebee.service.MovieService;
+import com.cinebee.util.ServiceUtils;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,10 +36,11 @@ public class MovieServiceImpl implements MovieService {
         this.movieRepository = movieRepository;
     }
 
-    private Map<String, Object> uploadImageToCloudinary(MultipartFile imageFile) {
+    @Async
+    private CompletableFuture<Map<String, Object>> uploadImageToCloudinary(MultipartFile imageFile) {
         try {
             @SuppressWarnings("unchecked") Map<String, Object> uploadResult = (Map<String, Object>) cloudinary.uploader().upload(imageFile.getBytes(), ObjectUtils.emptyMap());
-            return uploadResult;
+            return CompletableFuture.completedFuture(uploadResult);
         } catch (Exception e) {
             logger.error("Failed to upload image to Cloudinary", e);
             throw new ApiException(ErrorCode.MOVIE_IMAGE_UPLOAD_FAILED, e);
@@ -66,6 +69,7 @@ public class MovieServiceImpl implements MovieService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable("trendingMovies")
     public List<MovieResponse> getTrendingMovies(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         Page<Movie> page = movieRepository.findTrendingMovies(pageable);
@@ -105,9 +109,13 @@ public class MovieServiceImpl implements MovieService {
     public MovieResponse addMovie(MovieRequest req, MultipartFile posterImageFile) {
         Movie movie = MovieMapper.mapAddMovieRequestToEntity(req);
         if (posterImageFile != null && !posterImageFile.isEmpty()) {
-            Map<String, Object> uploadResult = uploadImageToCloudinary(posterImageFile);
-            movie.setPosterUrl((String) uploadResult.get("secure_url"));
-            movie.setPosterPublicId((String) uploadResult.get("public_id"));
+            try {
+                Map<String, Object> uploadResult = uploadImageToCloudinary(posterImageFile).get();
+                movie.setPosterUrl((String) uploadResult.get("secure_url"));
+                movie.setPosterPublicId((String) uploadResult.get("public_id"));
+            } catch (Exception e) {
+                throw new ApiException(ErrorCode.MOVIE_IMAGE_UPLOAD_FAILED, e);
+            }
         }
         return MovieMapper.mapToTrendingMovieResponse(movieRepository.save(movie));
     }
@@ -123,8 +131,7 @@ public class MovieServiceImpl implements MovieService {
     @Override
     @Transactional
     public MovieResponse updateMovie(Long movieId, MovieRequest req, MultipartFile posterImageFile) {
-        Movie movie = movieRepository.findById(movieId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MOVIE_NOT_FOUND));
+        Movie movie = ServiceUtils.findObjectOrThrow(() -> movieRepository.findById(movieId), ErrorCode.MOVIE_NOT_FOUND);
         MovieMapper.mapUpdateMovieRequestToEntity(req, movie);
 
         handlePosterImageUpdate(movie, req.getPosterUrl(), posterImageFile);
@@ -137,9 +144,13 @@ public class MovieServiceImpl implements MovieService {
         if (newPosterImageFile != null && !newPosterImageFile.isEmpty()) {
             // New file provided: delete old, upload new
             deleteImageFromCloudinary(movie.getPosterPublicId());
-            Map<String, Object> uploadResult = uploadImageToCloudinary(newPosterImageFile);
-            movie.setPosterUrl((String) uploadResult.get("secure_url"));
-            movie.setPosterPublicId((String) uploadResult.get("public_id"));
+            try {
+                Map<String, Object> uploadResult = uploadImageToCloudinary(newPosterImageFile).get();
+                movie.setPosterUrl((String) uploadResult.get("secure_url"));
+                movie.setPosterPublicId((String) uploadResult.get("public_id"));
+            } catch (Exception e) {
+                throw new ApiException(ErrorCode.MOVIE_IMAGE_UPLOAD_FAILED, e);
+            }
         } else if (newPosterUrl != null && !newPosterUrl.isEmpty()) {
             // No new file, but a new URL is provided in request: update URL, delete old Cloudinary image if exists
             if (movie.getPosterPublicId() != null && !movie.getPosterPublicId().isEmpty()) {

@@ -6,6 +6,7 @@ import com.cinebee.exception.ErrorCode;
 import com.cinebee.mapper.UserMapper;
 import com.cinebee.repository.UserRepository;
 import com.cinebee.service.UserService;
+import com.cinebee.util.ServiceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +24,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponse getUserProfile(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_EXISTED));
+        User user = ServiceUtils.findObjectOrThrow(() -> userRepository.findByUsername(username), ErrorCode.USER_NOT_EXISTED);
         return UserMapper.toUserResponse(user);
     }
 }

@@ -4,13 +4,16 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
 @Entity
 @Getter
 @Setter
 @Table(name = "banners")
-public class Banner {
+public class Banner implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,7 +25,7 @@ public class Banner {
     @JoinColumn(name = "movie_id")
     private Movie movie;
 
-    @Column(name = "start_date") 
+    @Column(name = "start_date")
     private LocalDate startDate;
 
     @Column(name = "end_date")

@@ -7,11 +7,15 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serializable;
+
 @Getter
 @Setter
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class MovieResponse {
+public class MovieResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private Long id;
     private String title;
