@@ -134,9 +134,6 @@ public class AuthServiceImpl implements AuthService {
                 if (!verifyTextCaptcha(request.getCaptchaKey(), request.getCaptcha())) {
                     throw new ApiException(ErrorCode.CAPTCHA_INVALID);
                 }
-                if (!this.verifyRecaptcha(request.getRecaptchaToken()).get()) {
-                    throw new ApiException(ErrorCode.CAPTCHA_INVALID);
-                }
             } catch (Exception e) {
                 throw new ApiException(ErrorCode.CAPTCHA_INVALID);
             }
