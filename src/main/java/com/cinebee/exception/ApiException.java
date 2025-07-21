@@ -1,5 +1,8 @@
 package com.cinebee.exception;
 
+import lombok.Getter;
+
+@Getter
 public class ApiException extends RuntimeException {
     private final ErrorCode errorCode;
 
@@ -8,12 +11,13 @@ public class ApiException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public ApiException(ErrorCode errorCode, Throwable cause) {
-        super(errorCode.getMessage(), cause);
+    public ApiException(ErrorCode errorCode, String customMessage) {
+        super(customMessage);
         this.errorCode = errorCode;
     }
 
-    public ErrorCode getErrorCode() {
-        return errorCode;
+    public ApiException(ErrorCode errorCode, Throwable cause) {
+        super(errorCode.getMessage(), cause);
+        this.errorCode = errorCode;
     }
 }

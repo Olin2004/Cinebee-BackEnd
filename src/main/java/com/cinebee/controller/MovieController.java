@@ -19,12 +19,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.cinebee.service.MovieService;
 
 
-@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/movies")
 public class MovieController {
     @Autowired
     private MovieService movieService;
+
+    @GetMapping("/clear-cache")
+    public ResponseEntity<String> clearCache() {
+        movieService.evictTrendingMoviesCache();
+        return ResponseEntity.ok("Trending movies cache cleared!");
+    }
 
     @GetMapping("/trending")
     public ResponseEntity<List<MovieResponse>> getTrendingMovies() {

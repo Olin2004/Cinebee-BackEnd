@@ -20,4 +20,5 @@ public class MovieRequest {
     private String country;
     private Date releaseDate;
     private Double discountPercentage;
+    private String trailerUrl;
 }

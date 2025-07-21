@@ -18,6 +18,7 @@ public class MovieMapper {
      */
     public static MovieResponse mapToTrendingMovieResponse(Movie movie) {
         if (movie == null) return null;
+        String trailerUrl = (movie.getTrailer() != null) ? movie.getTrailer().getTrailerUrl() : null;
         return new MovieResponse(
                 movie.getId(),
                 movie.getTitle(),
@@ -30,7 +31,8 @@ public class MovieMapper {
                 movie.getActors(),
                 movie.getDirector(),
                 movie.getCountry(),
-                movie.getReleaseDate() != null ? Date.valueOf(movie.getReleaseDate()).toLocalDate() : null
+                movie.getReleaseDate() != null ? Date.valueOf(movie.getReleaseDate()).toLocalDate() : null,
+                trailerUrl
         );
     }
 

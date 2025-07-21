@@ -3,12 +3,7 @@ package com.cinebee.entity;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -77,4 +72,19 @@ public class Movie implements Serializable {
 
     @Column(length = 100)
     private String country; // Quốc gia
+
+    @OneToOne(mappedBy = "movie", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private Trailer trailer;
+
+    // Helper method to manage bidirectional relationship
+    public void setTrailer(Trailer trailer) {
+        if (trailer == null) {
+            if (this.trailer != null) {
+                this.trailer.setMovie(null);
+            }
+        } else {
+            trailer.setMovie(this);
+        }
+        this.trailer = trailer;
+    }
 }

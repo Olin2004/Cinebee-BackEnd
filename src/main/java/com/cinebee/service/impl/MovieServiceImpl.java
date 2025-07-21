@@ -8,18 +8,21 @@ import com.cinebee.mapper.MovieMapper;
 import com.cinebee.repository.MovieRepository;
 import com.cinebee.service.MovieService;
 import com.cinebee.util.ServiceUtils;
+import com.cinebee.entity.Trailer;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +37,12 @@ public class MovieServiceImpl implements MovieService {
 
     public MovieServiceImpl(MovieRepository movieRepository) {
         this.movieRepository = movieRepository;
+    }
+
+    @Override
+    @CacheEvict(value = "trendingMovies", allEntries = true)
+    public void evictTrendingMoviesCache() {
+        logger.info("Trending movies cache has been evicted.");
     }
 
     @Async
@@ -117,6 +126,7 @@ public class MovieServiceImpl implements MovieService {
                 throw new ApiException(ErrorCode.MOVIE_IMAGE_UPLOAD_FAILED, e);
             }
         }
+        updateTrailer(movie, req.getTrailerUrl());
         return MovieMapper.mapToTrendingMovieResponse(movieRepository.save(movie));
     }
 
@@ -135,9 +145,25 @@ public class MovieServiceImpl implements MovieService {
         MovieMapper.mapUpdateMovieRequestToEntity(req, movie);
 
         handlePosterImageUpdate(movie, req.getPosterUrl(), posterImageFile);
+        updateTrailer(movie, req.getTrailerUrl());
 
         Movie updatedMovie = movieRepository.save(movie);
         return MovieMapper.mapToTrendingMovieResponse(updatedMovie);
+    }
+
+    private void updateTrailer(Movie movie, String trailerUrl) {
+        if (StringUtils.hasText(trailerUrl)) {
+            if (movie.getTrailer() != null) {
+                // Update existing trailer URL
+                movie.getTrailer().setTrailerUrl(trailerUrl);
+            } else {
+                // Create new trailer and associate it with the movie
+                movie.setTrailer(new Trailer(trailerUrl));
+            }
+        } else {
+            // If trailerUrl is empty or null, remove the existing trailer
+            movie.setTrailer(null);
+        }
     }
 
     private void handlePosterImageUpdate(Movie movie, String newPosterUrl, MultipartFile newPosterImageFile) {

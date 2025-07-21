@@ -57,12 +57,24 @@ public enum ErrorCode {
     MOVIE_IMAGE_DELETE_FAILED(7003, "Failed to delete old movie image", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Banner-related errors
-    BANNER_NOT_FOUND(9001, "Banner not found", HttpStatus.NOT_FOUND),
+    BANNER_NOT_FOUND(8006, "Banner not found", HttpStatus.NOT_FOUND),
 
     // AuthService errors
     CAPTCHA_INVALID(8001, "Captcha is incorrect or expired", HttpStatus.BAD_REQUEST),
     USERNAME_OR_PHONE_INVALID(8002, "Username/email/phone is required and must be at least 3 characters", HttpStatus.BAD_REQUEST),
-    PHONE_INVALID_FORMAT(8005, "Invalid Vietnamese phone number format (10 digits, starts with 0)", HttpStatus.BAD_REQUEST);
+    PHONE_INVALID_FORMAT(8005, "Invalid Vietnamese phone number format (10 digits, starts with 0)", HttpStatus.BAD_REQUEST),
+
+    // Ticket and Payment errors
+    TICKET_NOT_FOUND(9001, "Ticket not found", HttpStatus.NOT_FOUND),
+    PAYMENT_ALREADY_COMPLETED(9002, "This ticket has already been paid for", HttpStatus.CONFLICT),
+    PAYMENT_CREATION_FAILED(9003, "Failed to create payment request with the provider", HttpStatus.INTERNAL_SERVER_ERROR),
+    SEAT_NOT_AVAILABLE(9004, "Seat {seatNumber} is not available for this showtime", HttpStatus.CONFLICT),
+    SHOWTIME_NOT_FOUND(9005, "Showtime not found", HttpStatus.NOT_FOUND),
+    BOOKING_ALREADY_CANCELLED(9006, "This booking has already been cancelled", HttpStatus.CONFLICT),
+    BOOKING_ALREADY_PAID(9007, "Cannot cancel a paid booking", HttpStatus.CONFLICT),
+
+    // Theater errors
+    THEATER_NOT_FOUND(10001, "Theater not found", HttpStatus.NOT_FOUND);
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {
         this.code = code;

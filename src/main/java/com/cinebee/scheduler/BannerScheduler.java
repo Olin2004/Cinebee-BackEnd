@@ -17,7 +17,7 @@ public class BannerScheduler {
     private BannerRepository bannerRepository;
     // fixedRate = 5000
     // Chạy mỗi ngày lúc 0h05 sáng
-    @Scheduled(cron = "0 5 0 * * *")
+    @Scheduled(fixedRate = 5000)
     public void deactivateExpiredBanners() {
         LocalDate today = LocalDate.now();
         List<Banner> expiredBanners = bannerRepository.findAll().stream()

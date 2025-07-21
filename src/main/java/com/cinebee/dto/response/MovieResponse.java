@@ -12,7 +12,6 @@ import java.io.Serializable;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class MovieResponse implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -29,5 +28,21 @@ public class MovieResponse implements Serializable {
     private String director;
     private String country;
     private LocalDate releaseDate;
+    private String trailerUrl;
 
+    public MovieResponse(Long id, String title, String othernames, Double rating, String img, Integer rank, Integer duration, String genre, String actors, String director, String country, LocalDate releaseDate, String trailerUrl) {
+        this.id = id;
+        this.title = title;
+        this.othernames = othernames;
+        this.rating = rating;
+        this.img = img;
+        this.rank = rank;
+        this.duration = duration;
+        this.genre = genre;
+        this.actors = actors;
+        this.director = director;
+        this.country = country;
+        this.releaseDate = releaseDate;
+        this.trailerUrl = trailerUrl;
+    }
 }
