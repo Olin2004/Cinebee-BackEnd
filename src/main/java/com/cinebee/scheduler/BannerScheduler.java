@@ -18,17 +18,35 @@ public class BannerScheduler {
     // fixedRate = 5000
     // Chạy mỗi ngày lúc 0h05 sáng
     @Scheduled(fixedRate = 5000)
-    public void deactivateExpiredBanners() {
+    public void updateBannerStatus() {
         LocalDate today = LocalDate.now();
-        List<Banner> expiredBanners = bannerRepository.findAll().stream()
-                .filter(b -> b.isActive() && b.getEndDate() != null && b.getEndDate().isBefore(today))
-                .toList();
-        for (Banner banner : expiredBanners) {
-            banner.setActive(false);
+        List<Banner> allBanners = bannerRepository.findAll();
+        boolean hasChanges = false;
+
+        for (Banner banner : allBanners) {
+            boolean shouldBeActive = banner.getStartDate() != null 
+                && banner.getEndDate() != null
+                && !today.isBefore(banner.getStartDate())  // today >= startDate
+                && !today.isAfter(banner.getEndDate());    // today <= endDate
+
+            // Chỉ cập nhật nếu trạng thái thay đổi
+            if (banner.isActive() != shouldBeActive) {
+                banner.setActive(shouldBeActive);
+                hasChanges = true;
+                
+                if (shouldBeActive) {
+                    log.info("[BannerScheduler] ✅ Banner ID {} '{}' đã được KÍCH HOẠT (trong thời gian hiệu lực)", 
+                        banner.getId(), banner.getTitle());
+                } else {
+                    log.info("[BannerScheduler] ❌ Banner ID {} '{}' đã bị VÔ HIỆU HÓA (hết hạn hoặc chưa đến ngày)", 
+                        banner.getId(), banner.getTitle());
+                }
+            }
         }
-        if (!expiredBanners.isEmpty()) {
-            bannerRepository.saveAll(expiredBanners);
-           log.info("[BannerScheduler] Đã cập nhật " + expiredBanners.size() + " banner hết hạn thành inactive.");
+
+        if (hasChanges) {
+            bannerRepository.saveAll(allBanners);
+            log.info("[BannerScheduler] 🔄 Đã cập nhật trạng thái banner.");
         }
     }
 }

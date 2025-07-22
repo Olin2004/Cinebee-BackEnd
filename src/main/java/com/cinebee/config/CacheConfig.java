@@ -33,6 +33,8 @@ public class CacheConfig {
                 .withCacheConfiguration("trendingMovies",
                         RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(5)))
                 .withCacheConfiguration("movieDetails",
-                        RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofHours(1)));
+                        RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofHours(1)))
+                .withCacheConfiguration("activeBanners",
+                        RedisCacheConfiguration.defaultCacheConfig().entryTtl(Duration.ofMinutes(10))); // ✨ Thêm cache cho banner
     }
 }

@@ -1,12 +1,15 @@
 package com.cinebee.controller;
 
 import com.cinebee.dto.request.BannerRequest;
+import com.cinebee.dto.response.BannerResponse;
 import com.cinebee.entity.Banner;
+import com.cinebee.mapper.BannerMapper;
 import com.cinebee.service.BannerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/banner")
@@ -15,25 +18,36 @@ public class BannerController {
     private BannerService bannerService;
 
     @PostMapping("/add-banner")
-    public ResponseEntity<?> addBanner(@RequestBody BannerRequest request) {
+    public ResponseEntity<BannerResponse> addBanner(@RequestBody BannerRequest request) {
         Banner banner = bannerService.createBanner(request);
-        return ResponseEntity.ok(banner);
+        BannerResponse response = BannerMapper.toBannerResponse(banner);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/update-banner/{id}")
-    public ResponseEntity<?> updateBanner(@PathVariable Long id, @RequestBody BannerRequest request) {
+    public ResponseEntity<BannerResponse> updateBanner(@PathVariable Long id, @RequestBody BannerRequest request) {
         Banner updatedBanner = bannerService.updateBanner(id, request);
-        return ResponseEntity.ok(updatedBanner);
+        BannerResponse response = BannerMapper.toBannerResponse(updatedBanner);
+        return ResponseEntity.ok(response);
     }
+    
     @DeleteMapping("/delete-banner/{id}")
-    public ResponseEntity<?> deleteBanner(@PathVariable Long id) {
+    public ResponseEntity<BannerResponse> deleteBanner(@PathVariable Long id) {
         Banner deletedBanner = bannerService.deleteBanner(id);
-        return ResponseEntity.ok(deletedBanner);
+        BannerResponse response = BannerMapper.toBannerResponse(deletedBanner);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<Banner>> getActiveBanners() {
-        List<Banner> banners = bannerService.getActiveBanners();
-        return ResponseEntity.ok(banners);
+    public ResponseEntity<List<BannerResponse>> getActiveBanners() {
+        // ✨ Sử dụng method cache BannerResponse thay vì Banner entity
+        List<BannerResponse> responses = bannerService.getActiveBannerResponses();
+        return ResponseEntity.ok(responses);
+    }
+    
+    @PostMapping("/fix-priorities")
+    public ResponseEntity<String> fixNullPriorities() {
+        bannerService.fixNullPriorities();
+        return ResponseEntity.ok("✅ Đã fix priority cho các banner cũ");
     }
 }

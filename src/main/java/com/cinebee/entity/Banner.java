@@ -34,4 +34,9 @@ public class Banner implements Serializable {
     @Column(name = "is_active")
     private boolean isActive;
 
+    // Thêm trường priority để kiểm soát thứ tự hiển thị
+    // Số càng lớn càng ưu tiên (banner mới sẽ có priority cao hơn)
+    @Column(name = "priority")
+    private Integer priority = 0;
+
 }
