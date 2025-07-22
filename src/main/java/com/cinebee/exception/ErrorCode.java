@@ -72,6 +72,10 @@ public enum ErrorCode {
     SHOWTIME_NOT_FOUND(9005, "Showtime not found", HttpStatus.NOT_FOUND),
     BOOKING_ALREADY_CANCELLED(9006, "This booking has already been cancelled", HttpStatus.CONFLICT),
     BOOKING_ALREADY_PAID(9007, "Cannot cancel a paid booking", HttpStatus.CONFLICT),
+    SHOWTIME_HAS_PASSED(9008, "Cannot book a showtime that has already passed", HttpStatus.BAD_REQUEST),
+    SEAT_NOT_FOUND(9009, "Seat not found", HttpStatus.NOT_FOUND),
+    CANCELLATION_WINDOW_EXPIRED(9010, "Cannot cancel booking after 1 hour", HttpStatus.BAD_REQUEST),
+    REFUND_FAILED(9011, "Failed to process refund", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // Theater errors
     THEATER_NOT_FOUND(10001, "Theater not found", HttpStatus.NOT_FOUND);

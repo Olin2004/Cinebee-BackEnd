@@ -12,3 +12,4 @@ public interface TheaterService {
     TheaterResponse getTheaterById(Long id);
     Page<TheaterResponse> getAllTheaters(Pageable pageable);
 }
+

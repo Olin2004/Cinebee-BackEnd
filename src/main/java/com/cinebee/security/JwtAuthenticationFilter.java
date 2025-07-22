@@ -41,38 +41,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Bỏ qua JWT filter cho các đường dẫn trong White_List
         for (String pattern : com.cinebee.config.SecurityConfig.White_List) {
             if (pathMatcher.match(pattern, requestUri)) {
-                System.out.println("Skipping JWT filter for whitelisted URI: " + requestUri);
                 filterChain.doFilter(request, response);
                 return;
             }
         }
 
-
         String token = getJwtFromRequest(request);
-        System.out.println("Attempting to process JWT for URI: " + requestUri);
-        System.out.println("Token found: " + (token != null ? "Yes" : "No"));
 
         if (token != null && jwtConfig.validateToken(token)) {
-            System.out.println("Token is valid.");
             // Kiểm tra blacklist qua TokenService
             if (tokenService.isTokenBlacklisted(token)) {
-                System.out.println("Token is blacklisted.");
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token is blacklisted");
                 return;
             }
             String username = jwtConfig.getClaims(token).getSubject();
-            System.out.println("Username from token: " + username);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            System.out.println("User details loaded. Authorities: " + userDetails.getAuthorities());
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            System.out.println("Authentication set in SecurityContextHolder.");
-        } else if (token != null) {
-            System.out.println("Token is invalid.");
-        } else {
-            System.out.println("No token found.");
         }
         filterChain.doFilter(request, response);
     }

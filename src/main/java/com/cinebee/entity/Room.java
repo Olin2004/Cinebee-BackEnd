@@ -27,7 +27,12 @@ public class Room {
     @Column(nullable = false)
     private String name;
 
+    private String type; // VIP, Standard, IMAX, etc.
+
     private Integer capacity;
+
+    @Column(name = "is_active")
+    private Boolean isActive = true;
 
     @CreationTimestamp
     @Column(updatable = false)

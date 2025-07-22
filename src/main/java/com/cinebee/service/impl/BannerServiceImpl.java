@@ -30,11 +30,24 @@ public class BannerServiceImpl implements BannerService {
     @Autowired
     private MovieRepository movieRepository;
 
-    // Tạo mới banner
+    // Tạo mới banner (với validation)
     @Override
     @CacheEvict(value = "activeBanners", allEntries = true) // Clear cache khi tạo banner mới
     @Transactional
     public Banner createBanner(BannerRequest request) {
+        // ✨ VALIDATION: Kiểm tra xem phim đã có banner chưa
+        if (request.getMovieId() != null) {
+            List<Banner> existingBanners = bannerRepository.findByMovieId(request.getMovieId());
+            if (!existingBanners.isEmpty()) {
+                logger.warn("⚠️ Movie {} đã có {} banner(s) tồn tại!", request.getMovieId(), existingBanners.size());
+                
+                // TỰ ĐỘNG UPDATE BANNER ĐẦU TIÊN THAY VÌ TẠO MỚI
+                Banner existingBanner = existingBanners.get(0);
+                logger.info("🔄 Tự động cập nhật banner {} thay vì tạo mới", existingBanner.getId());
+                return updateBanner(existingBanner.getId(), request);
+            }
+        }
+        
         Banner banner = new Banner();
         mapRequestToBanner(banner, request);
         
@@ -123,6 +136,16 @@ public class BannerServiceImpl implements BannerService {
                 .map(BannerMapper::toBannerResponse)
                 .toList();
     }
+    
+    // ✨ Method để lấy tất cả banner (cho admin)
+    @Override
+    @Transactional(readOnly = true)
+    public List<BannerResponse> getAllBannerResponses() {
+        List<Banner> allBanners = bannerRepository.findAll();
+        return allBanners.stream()
+                .map(BannerMapper::toBannerResponse)
+                .toList();
+    }
     // Xóa banner bằng cách đánh dấu là không hoạt động
     @Override
     @CacheEvict(value = "activeBanners", allEntries = true) // Clear cache khi delete banner
@@ -131,6 +154,12 @@ public class BannerServiceImpl implements BannerService {
         Banner banner = ServiceUtils.findObjectOrThrow(() -> bannerRepository.findById(id), ErrorCode.BANNER_NOT_FOUND);
         banner.setActive(false);
         return bannerRepository.save(banner);
+    }
+    
+    // ✨ Tìm banner theo movieId
+    @Override
+    public List<Banner> getBannersByMovieId(Long movieId) {
+        return bannerRepository.findByMovieId(movieId);
     }
     
     // ✨ Method để fix priority cho banner cũ

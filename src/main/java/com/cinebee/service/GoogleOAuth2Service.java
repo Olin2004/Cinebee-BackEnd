@@ -112,8 +112,7 @@ public class GoogleOAuth2Service {
             response.setUserStatus(user.getUserStatus() != null ? user.getUserStatus().name() : null);
             return response;
         } catch (Exception e) {
-            System.err.println("Error during Google OAuth2 login: " + e.getMessage());
-            e.printStackTrace(); // In stack trace để xem chi tiết lỗi
+            // Log error for debugging
             throw new ApiException(ErrorCode.INTERNAL_ERROR);
         }
     }

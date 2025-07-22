@@ -10,4 +10,7 @@ import java.util.List;
 public interface BannerRepository extends JpaRepository<Banner, Long> {
     // Sắp xếp theo priority giảm dần (priority cao lên đầu), sau đó theo ID giảm dần
     List<Banner> findByIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByPriorityDescIdDesc(LocalDate start, LocalDate end);
+    
+    // ✨ Tìm banner theo movieId (để validate)
+    List<Banner> findByMovieId(Long movieId);
 }

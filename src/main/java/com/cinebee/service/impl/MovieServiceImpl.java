@@ -33,7 +33,8 @@ import java.util.stream.IntStream;
 public class MovieServiceImpl implements MovieService {
     private static final Logger logger = LoggerFactory.getLogger(MovieServiceImpl.class);
     private final MovieRepository movieRepository;
-    @Autowired private Cloudinary cloudinary;
+    @Autowired
+    private Cloudinary cloudinary;
 
     public MovieServiceImpl(MovieRepository movieRepository) {
         this.movieRepository = movieRepository;

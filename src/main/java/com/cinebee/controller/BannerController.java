@@ -9,14 +9,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/banner")
 public class BannerController {
+    
     @Autowired
     private BannerService bannerService;
 
+    /**
+     * Tạo banner mới
+     */
     @PostMapping("/add-banner")
     public ResponseEntity<BannerResponse> addBanner(@RequestBody BannerRequest request) {
         Banner banner = bannerService.createBanner(request);
@@ -24,13 +27,35 @@ public class BannerController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/update-banner/{id}")
-    public ResponseEntity<BannerResponse> updateBanner(@PathVariable Long id, @RequestBody BannerRequest request) {
-        Banner updatedBanner = bannerService.updateBanner(id, request);
-        BannerResponse response = BannerMapper.toBannerResponse(updatedBanner);
+    /**
+     * Update banner theo Movie ID - Tự động tạo mới nếu chưa có
+     * Logic: 1 movie = 1 banner
+     */
+    @PostMapping("/update-banner/{movieId}")
+    public ResponseEntity<BannerResponse> updateBannerByMovie(
+            @PathVariable Long movieId, 
+            @RequestBody BannerRequest request) {
+        
+        request.setMovieId(movieId);
+        
+        List<Banner> banners = bannerService.getBannersByMovieId(movieId);
+        Banner result;
+        
+        if (banners.isEmpty()) {
+            // Tạo banner mới nếu chưa có
+            result = bannerService.createBanner(request);
+        } else {
+            // Update banner đầu tiên (should be only one)
+            result = bannerService.updateBanner(banners.get(0).getId(), request);
+        }
+        
+        BannerResponse response = BannerMapper.toBannerResponse(result);
         return ResponseEntity.ok(response);
     }
     
+    /**
+     * Xóa banner (soft delete)
+     */
     @DeleteMapping("/delete-banner/{id}")
     public ResponseEntity<BannerResponse> deleteBanner(@PathVariable Long id) {
         Banner deletedBanner = bannerService.deleteBanner(id);
@@ -38,13 +63,27 @@ public class BannerController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Lấy tất cả banner đang active
+     */
     @GetMapping("/active")
     public ResponseEntity<List<BannerResponse>> getActiveBanners() {
-        // ✨ Sử dụng method cache BannerResponse thay vì Banner entity
         List<BannerResponse> responses = bannerService.getActiveBannerResponses();
         return ResponseEntity.ok(responses);
     }
     
+    /**
+     * Lấy tất cả banner (cho admin quản lý)
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<BannerResponse>> getAllBanners() {
+        List<BannerResponse> responses = bannerService.getAllBannerResponses();
+        return ResponseEntity.ok(responses);
+    }
+    
+    /**
+     * Fix priority cho các banner cũ (maintenance)
+     */
     @PostMapping("/fix-priorities")
     public ResponseEntity<String> fixNullPriorities() {
         bannerService.fixNullPriorities();
