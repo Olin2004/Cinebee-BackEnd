@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -32,7 +33,8 @@ public class Ticket {
     @Column(nullable = false)
     private Double price;
 
-    @Column(nullable = false)
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime bookedAt;
 
     @Column(nullable = false)
@@ -43,4 +45,9 @@ public class Ticket {
 
     @Column
     private Integer ticketSales = 0;
+    
+    // Getter method for total price (same as price for single ticket)
+    public Double getTotalPrice() {
+        return this.price;
+    }
 }

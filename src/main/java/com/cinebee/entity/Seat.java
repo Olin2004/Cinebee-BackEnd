@@ -1,9 +1,13 @@
 package com.cinebee.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "Seats", uniqueConstraints = @UniqueConstraint(columnNames = { "showtime_id", "seat_number" }))
+@Getter
+@Setter
 public class Seat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,21 +26,4 @@ public class Seat {
 
     private Boolean isAvailable = true;
     private Double priceModifier;
-    // ...getter, setter...
-
-    public Double getPriceModifier() {
-        return priceModifier;
-    }
-
-    public void setPriceModifier(Double priceModifier) {
-        this.priceModifier = priceModifier;
-    }
-
-    public Boolean getIsAvailable() {
-        return isAvailable;
-    }
-
-    public void setIsAvailable(Boolean isAvailable) {
-        this.isAvailable = isAvailable;
-    }
 }

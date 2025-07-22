@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Xác nhận đặt vé thành công</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				margin: 0;
+				padding: 20px;
+				background-color: #f5f5f5;
+			}
+			.container {
+				max-width: 600px;
+				margin: 0 auto;
+				background-color: white;
+				border-radius: 10px;
+				overflow: hidden;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			}
+			.header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+				padding: 30px;
+				text-align: center;
+			}
+			.content {
+				padding: 30px;
+			}
+			.ticket-info {
+				background-color: #f8f9fa;
+				border-radius: 8px;
+				padding: 20px;
+				margin: 20px 0;
+			}
+			.qr-section {
+				text-align: center;
+				margin: 30px 0;
+			}
+			.qr-code {
+				max-width: 200px;
+				height: auto;
+				border: 3px solid #667eea;
+				border-radius: 10px;
+			}
+			.footer {
+				background-color: #667eea;
+				color: white;
+				padding: 20px;
+				text-align: center;
+			}
+			.info-row {
+				display: flex;
+				justify-content: space-between;
+				margin: 10px 0;
+				padding: 8px 0;
+				border-bottom: 1px solid #eee;
+			}
+			.label {
+				font-weight: bold;
+				color: #667eea;
+			}
+			.value {
+				color: #333;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<!-- Header -->
+			<div class="header">
+				<h1>🎬 CINEBEE</h1>
+				<h2>XÁC NHẬN ĐẶT VÉ THÀNH CÔNG!</h2>
+			</div>
+
+			<!-- Content -->
+			<div class="content">
+				<p>Xin chào <strong th:text="${customerName}">Khách hàng</strong>,</p>
+				<p>
+					Cảm ơn bạn đã đặt vé tại <strong>CineBee</strong>! Đơn hàng của bạn đã được thanh toán thành
+					công.
+				</p>
+
+				<!-- Ticket Information -->
+				<div class="ticket-info">
+					<h3 style="color: #667eea; margin-top: 0">📋 THÔNG TIN VÉ XEM PHIM</h3>
+
+					<div class="info-row">
+						<span class="label">Mã vé:</span>
+						<span class="value" th:text="${ticketId}">#12345</span>
+					</div>
+
+					<div class="info-row">
+						<span class="label">Phim:</span>
+						<span class="value" th:text="${movieTitle}">Avengers Endgame</span>
+					</div>
+
+					<div class="info-row">
+						<span class="label">Rạp:</span>
+						<span class="value" th:text="${theaterName}">CGV Vincom</span>
+					</div>
+
+					<div class="info-row">
+						<span class="label">Phòng:</span>
+						<span class="value" th:text="${roomName}">Room 1</span>
+					</div>
+
+					<div class="info-row">
+						<span class="label">Suất chiếu:</span>
+						<span class="value" th:text="${showtime}">22/07/2025 - 19:30</span>
+					</div>
+
+					<div class="info-row">
+						<span class="label">Ghế:</span>
+						<span class="value" th:text="${seatNumbers}">A1, A2</span>
+					</div>
+
+					<div class="info-row">
+						<span class="label">Tổng tiền:</span>
+						<span class="value" style="color: #e74c3c; font-weight: bold" th:text="${totalPrice}"
+							>200,000 VNĐ</span
+						>
+					</div>
+				</div>
+
+				<!-- QR Code Section -->
+				<div class="qr-section">
+					<h3 style="color: #667eea">📱 MÃ QR VÉ XEM PHIM</h3>
+					<p>Vui lòng xuất trình mã QR này tại quầy vé để vào rạp:</p>
+					<img class="qr-code" th:src="'cid:qrcode'" alt="QR Code vé xem phim" />
+					<p style="font-size: 12px; color: #666; margin-top: 15px">
+						* Vui lòng có mặt tại rạp trước giờ chiếu 15 phút để check-in
+					</p>
+				</div>
+
+				<!-- Important Notes -->
+				<div
+					style="
+						background-color: #fff3cd;
+						border: 1px solid #ffeaa7;
+						border-radius: 5px;
+						padding: 15px;
+						margin: 20px 0;
+					"
+				>
+					<h4 style="color: #856404; margin-top: 0">⚠️ LƯU Ý QUAN TRỌNG:</h4>
+					<ul style="color: #856404; margin: 10px 0">
+						<li>Vui lòng có mặt tại rạp trước 15 phút</li>
+						<li>Xuất trình mã QR hoặc mã vé tại quầy</li>
+						<li>Không được hoàn tiền sau khi đã thanh toán</li>
+						<li>Liên hệ hotline nếu có vấn đề: 1900-xxxx</li>
+					</ul>
+				</div>
+			</div>
+
+			<!-- Footer -->
+			<div class="footer">
+				<p>Cảm ơn bạn đã chọn <strong>CineBee</strong>!</p>
+				<p>📞 Hotline: 1900-xxxx | 🌐 Website: cinebee.vn</p>
+			</div>
+		</div>
+	</body>
+</html>

@@ -12,6 +12,7 @@ import com.cinebee.repository.PaymentRepository;
 import com.cinebee.repository.TicketRepository;
 import com.cinebee.repository.UserRepository;
 import com.cinebee.service.PaymentService;
+import com.cinebee.service.TicketEmailService;
 import com.cinebee.util.MomoSecurityUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final TicketEmailService ticketEmailService;
 
     @Override
     @Transactional
@@ -215,7 +217,19 @@ public class PaymentServiceImpl implements PaymentService {
         if ("0".equals(resultCode)) {
             log.info("IPN SUCCESS: Payment for orderId {} is completed.", orderId);
             payment.setPaymentStatus(Payment.PaymentStatus.COMPLETED);
-            // Here you can trigger other business logic, e.g., finalize the ticket, send email...
+            
+            // ✨ GỬI EMAIL XÁC NHẬN VÉ THÀNH CÔNG
+            try {
+                Ticket ticket = payment.getTicket();
+                ticketEmailService.sendTicketConfirmationEmail(ticket);
+                log.info("✅ Ticket confirmation email sent for ticket {}", ticket.getId());
+            } catch (Exception emailError) {
+                log.error("❌ Failed to send confirmation email for ticket {}: {}", 
+                    payment.getTicket().getId(), emailError.getMessage());
+                // Không throw error vì payment đã thành công
+            }
+            
+            // Here you can trigger other business logic, e.g., finalize the ticket
             // ticket.setStatus(TicketStatus.CONFIRMED);
             // ticketRepository.save(ticket);
         } else {
@@ -241,6 +255,17 @@ public class PaymentServiceImpl implements PaymentService {
             if ("0".equals(resultCode)) {
                 log.info("Return SUCCESS: Payment for orderId {} is completed.", orderId);
                 payment.setPaymentStatus(Payment.PaymentStatus.COMPLETED);
+                
+                // ✨ GỬI EMAIL XÁC NHẬN VÉ NGAY KHI RETURN THÀNH CÔNG
+                try {
+                    Ticket ticket = payment.getTicket();
+                    ticketEmailService.sendTicketConfirmationEmail(ticket);
+                    log.info("✅ Ticket confirmation email sent for ticket {} via Return", ticket.getId());
+                } catch (Exception emailError) {
+                    log.error("❌ Failed to send confirmation email for ticket {} via Return: {}", 
+                        payment.getTicket().getId(), emailError.getMessage());
+                    // Không throw error vì payment đã thành công
+                }
             } else {
                 log.warn("Return FAILED: Payment for orderId {} failed with message: {}", orderId, message);
                 payment.setPaymentStatus(Payment.PaymentStatus.FAILED);
@@ -263,14 +288,15 @@ public class PaymentServiceImpl implements PaymentService {
             String orderInfo = params.get("orderInfo");
             String orderType = params.get("orderType");
             String transId = params.get("transId");
-            String resultCode = params.get("resultCode");
             String message = params.get("message");
-            String payType = params.get("payType");
+            String localMessage = params.get("localMessage");
             String responseTime = params.get("responseTime");
+            String errorCode = params.get("errorCode");
+            String payType = params.get("payType");
             String extraData = params.get("extraData");
             String receivedSignature = params.get("signature");
 
-            // Build signature string according to MoMo format
+            // Thử thứ tự giống như MoMo trả về trong log
             String rawSignature = "partnerCode=" + partnerCode +
                     "&accessKey=" + accessKey +
                     "&requestId=" + requestId +
@@ -279,15 +305,17 @@ public class PaymentServiceImpl implements PaymentService {
                     "&orderInfo=" + orderInfo +
                     "&orderType=" + orderType +
                     "&transId=" + transId +
-                    "&resultCode=" + resultCode +
                     "&message=" + message +
-                    "&payType=" + payType +
+                    "&localMessage=" + localMessage +
                     "&responseTime=" + responseTime +
-                    "&extraData=" + extraData;
+                    "&errorCode=" + errorCode +
+                    "&payType=" + payType +
+                    "&extraData=" + (extraData != null ? extraData : "");
 
+            log.info("Return Raw signature string: {}", rawSignature);
             String expectedSignature = MomoSecurityUtils.generateSignature(rawSignature, momoConfig.getSecretKey());
             
-            log.info("Signature verification - Expected: {}, Received: {}", expectedSignature, receivedSignature);
+            log.info("Return Signature verification - Expected: {}, Received: {}", expectedSignature, receivedSignature);
             return expectedSignature.equals(receivedSignature);
             
         } catch (Exception e) {
