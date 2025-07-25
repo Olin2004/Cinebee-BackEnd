@@ -1,6 +1,6 @@
 spring:
      application:
-          name: cinebee
+          name:
 
      datasource:
           url: jdbc:mysql://localhost:3306/cinebee

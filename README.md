@@ -1,170 +1,75 @@
-# Cinebee Backend
+# Cinebee - Backend API
 
-## Overview
+[![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://www.java.com)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.3-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Maven](https://img.shields.io/badge/Maven-3.8+-red.svg)](https://maven.apache.org/)
+[![Docker](https://img.shields.io/badge/Docker-Supported-blue.svg)](https://www.docker.com/)
 
-Cinebee Backend is a robust and modern movie theater management system built with Spring Boot. It provides a comprehensive suite of RESTful APIs for:
+This repository contains the backend source code for **Cinebee**, a comprehensive movie ticket booking platform. It is built with Spring Boot and provides a complete set of RESTful APIs designed to power client applications (Web and Mobile).
 
--   **User Authentication:** Secure JWT-based authentication, Google OAuth2 integration, and CAPTCHA verification.
--   **User & Role Management:** Efficient management of user accounts and roles.
--   **Movie Management:** Full CRUD operations for movies, including trending, search, and listing functionalities.
--   **Secure File Uploads:** Integration with Cloudinary for secure and efficient image storage.
--   **Email Services:** Account confirmation and status updates via email (now asynchronous).
--   **Analytics:** APIs for trending movies and various statistics.
+## Core Features
+
+-    **Secure User Authentication**: JWT-based login, registration, and session management. Includes Google OAuth2 integration, password reset via OTP, and token refresh capabilities.
+-    **Role-Based Access Control (RBAC)**: Differentiated permissions for `USER` and `ADMIN` roles using Spring Security.
+-    **Complete Movie & Showtime Management**: Full CRUD operations for movies, theaters, rooms, and showtimes.
+-    **End-to-End Booking Flow**: A seamless process for users to select seats, create a booking, and receive a confirmation.
+-    **Payment Gateway Integration**: Integrated with **MoMo** for online payments, including handling of IPN (Instant Payment Notification) and return URLs.
+-    **Automated Email & QR Code Generation**: Sends HTML-based ticket confirmation emails (using Thymeleaf) with a **QR Code** (using ZXing) for each ticket.
+-    **Cloud Media Storage**: Utilizes **Cloudinary** for efficient storage and delivery of media assets like movie posters and banners.
+-    **Performance Optimization**: Leverages **Redis** for caching frequently accessed data (e.g., trending movies, active banners) and for temporary storage of OTPs and CAPTCHA codes.
+-    **Enhanced Security**: Employs image-based **Kaptcha** for CAPTCHA verification to prevent automated abuse.
 
 ## Tech Stack
 
--   **Java 21:** The core programming language.
--   **Spring Boot 3:** Framework for building robust, production-ready applications.
--   **Spring Security (JWT):** For authentication and authorization using JSON Web Tokens.
--   **Spring Data JPA (MySQL):** For data persistence and interaction with the MySQL database.
--   **Redis:** Used for caching (e.g., CAPTCHA, token blacklist) to improve performance.
--   **Cloudinary:** A cloud-based media management platform for image and video uploads.
--   **Docker:** For containerizing Redis, ensuring easy setup and consistent environments.
--   **Maven:** Dependency management and build automation tool.
+| Category               | Technology                                                |
+| ---------------------- | --------------------------------------------------------- |
+| **Backend Framework**  | Spring Boot 3.3.3                                         |
+| **Language**           | Java 21                                                   |
+| **Database**           | Spring Data JPA, Hibernate, MySQL                         |
+| **Security**           | Spring Security, JWT (`jjwt`), OAuth2 (`nimbus-jose-jwt`) |
+| **Caching & Session**  | Redis, Spring Cache                                       |
+| **Media Storage**      | Cloudinary                                                |
+| **Payment**            | MoMo API                                                  |
+| **Email**              | Jakarta Mail, Thymeleaf (for HTML templates)              |
+| **Image Generation**   | Kaptcha (CAPTCHA), Google ZXing (QR Code)                 |
+| **Build Tool**         | Apache Maven                                              |
+| **Containerization**   | Docker, Docker Compose                                    |
+| **Environment Config** | DotEnv                                                    |
 
-## Project Structure
+## Setup and Configuration
 
+### 1. Prerequisites
+
+-    JDK 21
+-    Apache Maven 3.8+
+-    MySQL 8.0+
+-    Redis 6.2+
+-    Docker & Docker Compose (optional)
+
+### 2. Clone the Repository
+
+```bash
+git clone https://github.com/Olin2004/Cinebee-BackEnd.git
+cd Cinebee-BackEnd
 ```
-Cinebee-BackEnd/
-├── docker-compose.yml      # Docker configuration for Redis
-├── pom.xml                 # Maven project configuration
-├── README.md               # Project documentation
-├── src/
-│   └── main/
-│       ├── java/com/cinebee/
-│       │   ├── config/         # Security, JWT, CORS, Cloudinary configurations
-│       │   ├── controller/     # REST API endpoints (auth, movie, etc.)
-│       │   ├── dto/            # Data Transfer Objects for requests and responses
-│       │   ├── entity/         # JPA entities (User, Movie, Banner, etc.)
-│       │   ├── exception/      # Custom exceptions and global exception handling
-│       │   ├── mapper/         # Mappers for converting entities to DTOs and vice-versa
-│       │   ├── repository/     # Spring Data JPA repositories for database operations
-│       │   ├── security/       # JWT filter, custom user details service
-│       │   └── service/        # Business logic and service implementations (now with interfaces and implementations)
-│       └── resources/
-│           └── application.yml # Spring Boot, DB, Redis, JWT, Cloudinary properties
-└── ...
-```
 
-## Database Schema and Relationships
+### 3. Configure Environment Variables
 
-Below is a detailed breakdown of the database tables and their relationships, derived from the JPA entities.
+This project uses a `.env` file to manage secrets and environment-specific configuration. Create a file named `.env` in the root directory of the project.
 
-### **1. Table: `Users`**
-*   **Description:** Stores user information.
-*   **Key Columns:** `id` (PK), `username` (Unique), `email` (Unique), `phoneNumber` (Unique), `password`, `fullName`, `dateOfBirth`, `avatarUrl`, `oauthId`, `provider`, `role`, `userStatus`, `createdAt`, `updatedAt`.
-*   **Indexes:** `idx_username` on `username`, `idx_email` on `email`.
-*   **Relationships:**
-    *   `One-to-Many` with `Comments`: One user can write many comments.
-    *   `One-to-Many` with `Payments`: One user can make many payments.
-    *   `One-to-Many` with `Tickets`: One user can book many tickets.
+**`.env` file contents:**
 
-### **2. Table: `Movies`**
-*   **Description:** Stores detailed information about movies.
-*   **Key Columns:** `id` (PK), `title` (Non-null), `description`, `duration` (Non-null), `posterUrl`, `posterPublicId`, `releaseDate`, `genre`, `basePrice` (Non-null), `discountPercentage`, `createdAt`, `othernames`, `rating`, `votes`, `views`, `actors`, `director`, `country`.
-*   **Relationships:**
-    *   `One-to-Many` with `Banners`: One movie can appear on many banners.
-    *   `One-to-Many` with `Comments`: One movie can have many comments.
-    *   `One-to-Many` with `Showtimes`: One movie can have many showtimes.
-    *   `One-to-Many` with `Trailers`: One movie can have many trailers.
-
-### **3. Table: `banners`**
-*   **Description:** Stores information about promotional banners.
-*   **Key Columns:** `id` (PK), `title`, `description`, `bannerUrl`, `startDate`, `endDate`, `isActive`.
-*   **Relationships:**
-    *   `Many-to-One` with `Movies`: Many banners can link to one movie (via `movie_id` foreign key).
-
-### **4. Table: `Comments`**
-*   **Description:** Stores user comments on movies.
-*   **Key Columns:** `id` (PK), `content` (Non-null), `createdAt`.
-*   **Relationships:**
-    *   `Many-to-One` with `Movies`: Each comment belongs to one movie (via `movie_id` foreign key, non-null).
-    *   `Many-to-One` with `Users`: Each comment is made by one user (via `user_id` foreign key, non-null).
-
-### **5. Table: `Payments`**
-*   **Description:** Stores payment transaction details for tickets.
-*   **Key Columns:** `id` (PK), `amount` (Non-null), `paymentMethod` (Enum, Non-null), `paymentStatus` (Enum, Non-null), `createdAt`.
-*   **Relationships:**
-    *   `Many-to-One` with `Tickets`: Each payment is for one ticket (via `ticket_id` foreign key, non-null).
-    *   `Many-to-One` with `Users`: Each payment is made by one user (via `user_id` foreign key).
-
-### **6. Table: `Rooms`**
-*   **Description:** Stores information about cinema rooms within a theater.
-*   **Key Columns:** `id` (PK), `name` (Non-null), `capacity`, `createdAt`.
-*   **Unique Constraints:** `(theater_id, name)`.
-*   **Relationships:**
-    *   `Many-to-One` with `Theaters`: Each room belongs to one theater (via `theater_id` foreign key, non-null).
-    *   `One-to-Many` with `Room_Seats`: One room has many defined seats.
-    *   `One-to-Many` with `Showtimes`: One room can host many showtimes.
-
-### **7. Table: `Room_Seats`**
-*   **Description:** Defines the seats within a specific cinema room.
-*   **Key Columns:** `id` (PK), `seatNumber` (Non-null), `seatType` (Enum, Non-null).
-*   **Unique Constraints:** `(room_id, seat_number)`.
-*   **Relationships:**
-    *   `Many-to-One` with `Rooms`: Each room seat belongs to one room (via `room_id` foreign key, non-null).
-
-### **8. Table: `Seats`**
-*   **Description:** Stores the status and pricing of individual seats for a specific showtime.
-*   **Key Columns:** `id` (PK), `seatNumber` (Non-null), `seatType` (Enum, Non-null), `isAvailable`, `priceModifier`.
-*   **Unique Constraints:** `(showtime_id, seat_number)`.
-*   **Relationships:**
-    *   `Many-to-One` with `Showtimes`: Each seat belongs to one showtime (via `showtime_id` foreign key, non-null).
-    *   `One-to-Many` with `Tickets`: One seat in a showtime can be booked by one ticket.
-
-### **9. Table: `Showtimes`**
-*   **Description:** Stores information about movie showtimes.
-*   **Key Columns:** `id` (PK), `startTime` (Non-null), `endTime` (Non-null), `priceModifier` (Non-null), `createdAt`.
-*   **Relationships:**
-    *   `Many-to-One` with `Movies`: Each showtime features one movie (via `movie_id` foreign key, non-null).
-    *   `Many-to-One` with `Theaters`: Each showtime takes place at one theater (via `theater_id` foreign key, non-null).
-    *   `Many-to-One` with `Rooms`: Each showtime takes place in one room (via `room_id` foreign key, non-null).
-    *   `One-to-Many` with `Seats`: One showtime has many seats defined for it.
-    *   `One-to-Many` with `Tickets`: One showtime has many tickets booked for it.
-
-### **10. Table: `Theaters`**
-*   **Description:** Stores information about cinema theaters.
-*   **Key Columns:** `id` (PK), `name` (Non-null), `address`, `createdAt`.
-*   **Relationships:**
-    *   `One-to-Many` with `Rooms`: One theater can have many rooms.
-    *   `One-to-Many` with `Showtimes`: One theater can host many showtimes.
-
-### **11. Table: `Tickets`**
-*   **Description:** Stores information about booked tickets.
-*   **Key Columns:** `id` (PK), `price` (Non-null), `bookedAt` (Non-null), `isCancelled`, `cancelledAt`, `ticketSales`.
-*   **Relationships:**
-    *   `Many-to-One` with `Users`: Each ticket is booked by one user (via `user_id` foreign key).
-    *   `Many-to-One` with `Showtimes`: Each ticket is for one showtime (via `showtime_id` foreign key, non-null).
-    *   `Many-to-One` with `Seats`: Each ticket is for one specific seat in a showtime (via `seat_id` foreign key, non-null).
-    *   `One-to-Many` with `Payments`: One ticket can have multiple associated payments.
-
-### **12. Table: `trailers`**
-*   **Description:** Stores URLs for movie trailers.
-*   **Key Columns:** `id` (PK), `trailerUrl` (Non-null).
-*   **Relationships:**
-    *   `Many-to-One` with `Movies`: Each trailer belongs to one movie (via `movie_id` foreign key, non-null).
-
-## Environment Variables (.env)
-
-Create a `.env` file in the project root directory with the following variables. **Do NOT commit this file to your version control system.**
-
-```
+```env
 # Database Configuration
 DB_USERNAME=your_mysql_username
 DB_PASSWORD=your_mysql_password
 
-# Redis Configuration
-REDIS_PASSWORD=your_redis_password
+# Redis Configuration (optional, leave empty if no password)
+REDIS_PASSWORD=
 
-# Email Configuration (for account confirmation, etc.)
-MAIL_USERNAME=your_email@example.com
-MAIL_PASSWORD=your_email_app_password
-
-# JWT Configuration
-JWT_SECRET=aVeryLongAndSecureRandomSecretKeyForJWT
-
-# reCAPTCHA Configuration
-RECAPTCHA_SECRET=your_recaptcha_secret_key
+# Email Configuration
+MAIL_USERNAME=your_gmail_address@gmail.com
+MAIL_PASSWORD=your_gmail_app_password
 
 # Google OAuth2 Configuration
 GOOGLE_CLIENT_ID=your_google_client_id
@@ -174,140 +79,282 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+
+# MoMo Payment Gateway Configuration
+MOMO_PARTNER_CODE=your_momo_partner_code
+MOMO_ACCESS_KEY=your_momo_access_key
+MOMO_SECRET_KEY=your_momo_secret_key
+
+# reCAPTCHA (if used)
+RECAPTCHA_SECRET=your_recaptcha_secret
 ```
 
-## How to Run the Project
+_Note: The `application.yml` file will automatically import these variables._
 
-Follow these steps to set up and run the Cinebee Backend locally:
+### 4. Database Setup
 
-1.  **Prerequisites:**
-    *   Java Development Kit (JDK) 21 or higher
-    *   Apache Maven
-    *   MySQL Database Server
-    *   Docker (for running Redis)
+Create a MySQL database named `cinebee`:
 
-2.  **Database Setup:**
-    *   Create a MySQL database named `cinebee`. You can adjust the database name in `src/main/resources/application.yml` if needed.
+```sql
+CREATE DATABASE cinebee CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-3.  **Environment Variables:**
-    *   Create the `.env` file in the project root as described in the "Environment Variables" section above and fill in your credentials.
+### 5. Build and Run
 
-4.  **Start Redis (using Docker):**
-    ```bash
-    docker-compose up -d
-    ```
-    This command will start the Redis container in detached mode.
+**Option A: Using Docker Compose (Redis only)**
+The `docker-compose.yml` file provides Redis service. Start Redis first:
 
-5.  **Build and Run the Application:**
-    ```bash
-    mvn clean install
-    mvn spring-boot:run
-    ```
-    The `mvn clean install` command compiles the project and packages it. `mvn spring-boot:run` starts the Spring Boot application.
+```bash
+docker-compose up -d
+```
 
-6.  **Access the API:**
-    *   The application will typically run on `http://localhost:8080`.
+Then run the application locally:
 
-## API Usage
+```bash
+mvn spring-boot:run
+```
 
-The API endpoints are designed to be intuitive and follow RESTful principles. All protected endpoints require a valid JWT in the `Authorization: Bearer <token>` header.
+**Option B: Running Locally with Maven**
+Ensure your MySQL and Redis instances are running locally, then:
 
-### Authentication Endpoints
+```bash
+mvn clean install
+mvn spring-boot:run
+```
 
--   **User Registration:**
-    *   `POST /api/auth/register`
-    *   Description: Register a new user account.
--   **User Login:**
-    *   `POST /api/auth/login`
-    *   Description: Authenticate a user and receive a JWT.
--   **Google OAuth2 Login:**
-    *   `POST /api/auth/google`
-    *   Description: Authenticate using a Google token.
--   **Refresh Token:**
-    *   `POST /api/auth/refresh-token`
-    *   Description: Refresh an expired access token using a refresh token (sent via HttpOnly cookie).
--   **Logout:**
-    *   `POST /api/auth/logout`
-    *   Description: Invalidate the current access token and clear authentication cookies.
+The application will start on `http://localhost:8080`
 
-### Movie Endpoints
+## API Documentation
 
--   **Get Trending Movies:**
-    *   `GET /api/movies/trending`
-    *   Description: Retrieves a list of trending movies.
-    *   Authentication: None required.
--   **Search Movies:**
-    *   `GET /api/movies/search?title={title}`
-    *   Description: Searches for movies by title.
-    *   Authentication: None required.
--   **Add New Movie (Admin Only):**
-    *   `POST /api/movies/add-new-film`
-    *   Description: Adds a new movie to the database. Supports optional poster image upload.
-    *   Authentication: Requires `ADMIN` role.
-    *   Request Body (form-data):
-        *   `info` (Text): JSON string containing movie details.
-            ```json
-            {
-              "title": "Movie Title",
-              "othernames": "Alternative Title",
-              "basePrice": 100000,
-              "duration": 120,
-              "genre": "Action",
-              "description": "A brief description of the movie.",
-              "posterUrl": "https://example.com/default-poster.jpg"
-            }
-            ```
-        *   `posterImageFile` (File): (Optional) The movie poster image file.
--   **Update Movie (Admin Only):**
-    *   `POST /api/movies/update-film?id={movieId}`
-    *   Description: Updates an existing movie's information and/or poster image.
-    *   Authentication: Requires `ADMIN` role.
-    *   Request Body (form-data): Same as "Add New Movie".
--   **Delete Movie (Admin Only):**
-    *   `POST /api/movies/delete-film?id={movieId}`
-    *   Description: Deletes a movie by its ID.
-    *   Authentication: Requires `ADMIN` role.
--   **Get All Movies Paged:**
-    *   `GET /api/movies/list-movies?page={page}&size={size}`
-    *   Description: Returns a paginated list of all movies.
-    *   Authentication: None required.
+All protected endpoints require a JWT `Bearer` token in the `Authorization` header.
 
-### Banner Endpoints
+### Authentication (`/api/auth`)
 
--   **Create Banner (Admin Only):**
-    *   `POST /api/banner/create`
-    *   Description: Creates a new banner.
-    *   Authentication: Requires `ADMIN` role.
--   **Update Banner (Admin Only):**
-    *   `PUT /api/banner/update/{id}`
-    *   Description: Updates an existing banner.
-    *   Authentication: Requires `ADMIN` role.
--   **Get Active Banners:**
-    *   `GET /api/banner/active`
-    *   Description: Retrieves a list of currently active banners.
-    *   Authentication: None required.
--   **Delete Banner (Admin Only):**
-    *   `DELETE /api/banner/delete/{id}`
-    *   Description: Deletes a banner by marking it as inactive.
-    *   Authentication: Requires `ADMIN` role.
+| Method | Endpoint           | Description                                   | Access |
+| :----- | :----------------- | :-------------------------------------------- | :----- |
+| `POST` | `/login`           | Authenticate a user and get tokens.           | Public |
+| `POST` | `/register`        | Create a new user account.                    | Public |
+| `GET`  | `/captcha`         | Get a new CAPTCHA image and key.              | Public |
+| `POST` | `/google`          | Authenticate using a Google ID token.         | Public |
+| `POST` | `/forgot-password` | Request a password reset OTP via email.       | Public |
+| `POST` | `/verify-otp`      | Verify the OTP for password reset.            | Public |
+| `POST` | `/reset-password`  | Set a new password using a temporary token.   | Public |
+| `POST` | `/refresh-token`   | Get a new access token using a refresh token. | User   |
+| `POST` | `/logout`          | Log out the user.                             | User   |
 
-### Other Endpoints
+### User Profile (`/api`)
 
--   **CAPTCHA Generation:**
-    *   `GET /api/captcha/generate`
-    *   Description: Generates a new CAPTCHA image and returns its ID.
--   **User Profile:**
-    *   `GET /api/profile`
-    *   Description: Retrieves the authenticated user's profile information.
-    *   Authentication: Requires valid JWT.
+| Method | Endpoint   | Description                                      | Access |
+| :----- | :--------- | :----------------------------------------------- | :----- |
+| `GET`  | `/profile` | Get the profile of the currently logged-in user. | User   |
 
-## Testing Tips
+### Movies (`/api/movies`)
 
--   Use tools like Postman, Insomnia, or your preferred REST client for testing API endpoints.
--   For endpoints requiring file uploads, always use `form-data` and ensure the `info` field is sent as a JSON string (Text type) and `posterImageFile` as a File type.
--   When testing admin-only APIs, ensure you include a valid JWT token for an `ADMIN` user in the `Authorization` header.
--   If you encounter a `403 Forbidden` error, verify your JWT token and the user's assigned role.
+| Method | Endpoint        | Description                            | Access |
+| :----- | :-------------- | :------------------------------------- | :----- |
+| `GET`  | `/trending`     | Get a list of top 10 trending movies.  | Public |
+| `GET`  | `/search`       | Search for movies by title.            | Public |
+| `GET`  | `/list-movies`  | Get a paginated list of all movies.    | Admin  |
+| `GET`  | `/clear-cache`  | Clear trending movies cache.           | Public |
+| `POST` | `/add-new-film` | Add a new movie (multipart/form-data). | Admin  |
+| `POST` | `/update-film`  | Update a movie (multipart/form-data).  | Admin  |
+| `POST` | `/delete-film`  | Delete a movie.                        | Admin  |
 
----
+### Banners (`/api/banner`)
 
-For more detailed information, refer to the source code within each package and controller.
+| Method   | Endpoint                   | Description                               | Access |
+| :------- | :------------------------- | :---------------------------------------- | :----- |
+| `GET`    | `/active`                  | Get all active banners for the homepage.  | Public |
+| `GET`    | `/all`                     | Get all banners, including inactive ones. | Admin  |
+| `POST`   | `/add-banner`              | Add a new banner.                         | Admin  |
+| `POST`   | `/update-banner/{movieId}` | Update or create banner for a movie.      | Admin  |
+| `DELETE` | `/delete-banner/{id}`      | Delete a banner.                          | Admin  |
+
+### Theaters (`/api/v1/theaters`)
+
+| Method   | Endpoint | Description                           | Access |
+| :------- | :------- | :------------------------------------ | :----- |
+| `GET`    | `/`      | Get a paginated list of all theaters. | Public |
+| `GET`    | `/{id}`  | Get details for a single theater.     | Public |
+| `POST`   | `/`      | Create a new theater.                 | Admin  |
+| `PUT`    | `/{id}`  | Update an existing theater.           | Admin  |
+| `DELETE` | `/{id}`  | Soft-delete a theater.                | Admin  |
+
+### Showtimes (`/api/v1/showtimes`)
+
+| Method   | Endpoint                               | Description                                     | Access |
+| :------- | :------------------------------------- | :---------------------------------------------- | :----- |
+| `GET`    | `/`                                    | Get all showtimes with pagination.              | Public |
+| `GET`    | `/{id}`                                | Get details for a single showtime.              | Public |
+| `GET`    | `/movie/{movieId}`                     | Get all showtimes for a specific movie.         | Public |
+| `GET`    | `/theater/{theaterId}`                 | Get all showtimes for a specific theater.       | Public |
+| `GET`    | `/movie/{movieId}/theater/{theaterId}` | Get showtimes for movie in specific theater.    | Public |
+| `GET`    | `/date/{date}`                         | Get showtimes for a specific date.              | Public |
+| `GET`    | `/{id}/seats`                          | Get available seats for a showtime.             | Public |
+| `GET`    | `/booking`                             | Get showtimes filtered by movie, theater, date. | Public |
+| `POST`   | `/`                                    | Create a new showtime.                          | Admin  |
+| `PUT`    | `/{id}`                                | Update an existing showtime.                    | Admin  |
+| `DELETE` | `/{id}`                                | Delete a showtime.                              | Admin  |
+
+### Tickets & Booking (`/api/v1/tickets`)
+
+| Method   | Endpoint                        | Description                                  | Access |
+| :------- | :------------------------------ | :------------------------------------------- | :----- |
+| `GET`    | `/showtimes/{showtimeId}/seats` | Get available seats for a showtime.          | Public |
+| `POST`   | `/book`                         | Create a booking (returns MoMo payment URL). | User   |
+| `GET`    | `/my-bookings`                  | Get the current user's booking history.      | User   |
+| `GET`    | `/{ticketId}`                   | Get details for a specific booking.          | User   |
+| `DELETE` | `/{ticketId}`                   | Cancel a booking (if not yet paid).          | User   |
+
+## Project Structure
+
+```
+src/
+├── main/
+│   ├── java/com/cinebee/
+│   │   ├── CineBeeApplication.java          # Main Spring Boot application
+│   │   ├── common/                          # Enums and constants
+│   │   │   ├── Role.java
+│   │   │   └── UserStatus.java
+│   │   ├── config/                          # Configuration classes
+│   │   │   ├── CacheConfig.java            # Redis cache configuration
+│   │   │   ├── CaptchaConfig.java          # Kaptcha CAPTCHA configuration
+│   │   │   ├── CloudinaryConfig.java       # Cloudinary media storage
+│   │   │   ├── JwtConfig.java              # JWT token configuration
+│   │   │   ├── MomoConfig.java             # MoMo payment gateway
+│   │   │   ├── RestTemplateConfig.java     # HTTP client configuration
+│   │   │   └── SecurityConfig.java         # Spring Security configuration
+│   │   ├── controller/                      # REST API controllers
+│   │   │   ├── AuthController.java         # Authentication endpoints
+│   │   │   ├── BannerController.java       # Banner management
+│   │   │   ├── CaptchaController.java      # CAPTCHA generation
+│   │   │   ├── LoginController.java        # Login endpoint
+│   │   │   ├── MovieController.java        # Movie management
+│   │   │   ├── PaymentController.java      # Payment processing
+│   │   │   ├── ProfileController.java      # User profile
+│   │   │   ├── RegisterController.java     # User registration
+│   │   │   ├── ShowtimeController.java     # Showtime management
+│   │   │   ├── TheaterController.java      # Theater management
+│   │   │   └── TicketController.java       # Ticket booking
+│   │   ├── dto/                            # Data Transfer Objects
+│   │   │   ├── request/                    # Request DTOs
+│   │   │   └── response/                   # Response DTOs
+│   │   ├── entity/                         # JPA Entities
+│   │   │   ├── Banner.java
+│   │   │   ├── Comment.java
+│   │   │   ├── Movie.java
+│   │   │   ├── Payment.java
+│   │   │   ├── Room.java
+│   │   │   ├── RoomSeat.java
+│   │   │   ├── Seat.java
+│   │   │   ├── Showtime.java
+│   │   │   ├── Theater.java
+│   │   │   ├── Ticket.java
+│   │   │   ├── Trailer.java
+│   │   │   └── User.java
+│   │   ├── exception/                      # Exception handling
+│   │   │   ├── ApiException.java
+│   │   │   ├── ErrorCode.java
+│   │   │   ├── GlobalExceptionHandler.java
+│   │   │   └── ResourceNotFoundException.java
+│   │   ├── mapper/                         # Entity to DTO mappers
+│   │   │   ├── BannerMapper.java
+│   │   │   ├── MovieMapper.java
+│   │   │   └── UserMapper.java
+│   │   ├── repository/                     # JPA Repositories
+│   │   │   ├── BannerRepository.java
+│   │   │   ├── CommentRepository.java
+│   │   │   ├── MovieRepository.java
+│   │   │   ├── PaymentRepository.java
+│   │   │   ├── RoomRepository.java
+│   │   │   ├── SeatRepository.java
+│   │   │   ├── ShowtimeRepository.java
+│   │   │   ├── TheaterRepository.java
+│   │   │   ├── TicketRepository.java
+│   │   │   └── UserRepository.java
+│   │   ├── scheduler/                      # Scheduled tasks
+│   │   ├── security/                       # Security implementations
+│   │   ├── service/                        # Business logic services
+│   │   └── util/                          # Utility classes
+│   └── resources/
+│       ├── application.yml                # Application configuration
+│       └── templates/
+│           └── ticket-confirmation.html   # Email template
+├── docker-compose.yml                     # Docker services (Redis)
+├── pom.xml                               # Maven dependencies
+└── README.md                             # Project documentation
+```
+
+## Features
+
+### ✅ Implemented Features
+
+-    [x] User Authentication (Register, Login, JWT)
+-    [x] Google OAuth2 Integration
+-    [x] Password Reset with OTP
+-    [x] Role-based Access Control (USER, ADMIN)
+-    [x] Movie Management (CRUD)
+-    [x] Theater Management (CRUD)
+-    [x] Showtime Management (CRUD)
+-    [x] Seat Selection and Booking
+-    [x] MoMo Payment Integration
+-    [x] Email Notifications with QR Code
+-    [x] Banner Management
+-    [x] CAPTCHA Security
+-    [x] Redis Caching
+-    [x] Cloudinary Media Storage
+-    [x] Global Exception Handling
+
+### 🚧 Planned Features
+
+-    [ ] Comment and Rating System
+-    [ ] Advanced Movie Search and Filtering
+-    [ ] Loyalty Points System
+-    [ ] Multiple Payment Gateways
+-    [ ] Real-time Notifications
+-    [ ] Advanced Analytics Dashboard
+
+## Development Notes
+
+### Database Configuration
+
+-    Database name: `cinebee`
+-    Port: 3306 (MySQL default)
+-    Character set: `utf8mb4_unicode_ci`
+-    Hibernate DDL: `update` (auto-creates/updates tables)
+
+### Security Configuration
+
+-    JWT expiration: 1 hour (3600000 ms)
+-    Refresh token stored in HTTP-only cookies
+-    CORS enabled for `http://localhost:3000`
+-    Protected routes require `Bearer` token
+
+### Payment Configuration
+
+-    MoMo test environment endpoint
+-    IPN (Instant Payment Notification) webhook: `/api/v1/payments/momo/ipn`
+-    Return URL after payment: `/api/v1/payments/momo/return`
+
+### Cache Configuration
+
+-    Redis used for caching trending movies
+-    CAPTCHA codes stored with TTL
+-    OTP codes stored temporarily
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+-    **Project Repository**: [https://github.com/Olin2004/Cinebee-BackEnd](https://github.com/Olin2004/Cinebee-BackEnd)
+-    **Issues**: [https://github.com/Olin2004/Cinebee-BackEnd/issues](https://github.com/Olin2004/Cinebee-BackEnd/issues)

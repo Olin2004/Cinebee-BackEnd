@@ -21,7 +21,7 @@ public class JwtConfig {
     @Value("${jwt.secret:cinebeeSecretKey}")
     private String jwtSecret;
 
-    @Value("${jwt.expirationMs:3600000}") // 1 hour
+    @Value("${jwt.expirationMs:36000000}") // 1 hour
     private long jwtExpirationMs;
 
     @Value("${jwt.refreshExpirationMs:604800000}") // 7 days
